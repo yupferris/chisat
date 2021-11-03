@@ -19,11 +19,18 @@ enum Literal {
 
 impl Literal {
     fn evaluate(&self, assignment: &Assignment) -> bool {
-        let (variable_ref, is_negative) = match self {
-            Literal::Positive(variable_ref) => (variable_ref, false),
-            Literal::Negative(variable_ref) => (variable_ref, true),
+        let (variable, is_negative) = match self {
+            Literal::Positive(variable) => (variable, false),
+            Literal::Negative(variable) => (variable, true),
         };
-        assignment.values.get(&variable_ref).map(|&value| value ^ is_negative).unwrap_or(false)
+        assignment.values.get(&variable).map(|&value| value ^ is_negative).unwrap_or(false)
+    }
+
+    fn variable(&self) -> VariableRef {
+        match self {
+            &Literal::Positive(variable) => variable,
+            &Literal::Negative(variable) => variable,
+        }
     }
 }
 
@@ -33,8 +40,8 @@ impl Neg for Literal {
 
     fn neg(self) -> Self::Output {
         match self {
-            Literal::Positive(variable_ref) => Literal::Negative(variable_ref),
-            Literal::Negative(variable_ref) => Literal::Positive(variable_ref),
+            Literal::Positive(variable) => Literal::Negative(variable),
+            Literal::Negative(variable) => Literal::Positive(variable),
         }
     }
 }
@@ -58,6 +65,48 @@ impl Formula {
     fn evaluate(&self, assignment: &Assignment) -> bool {
         self.clauses.iter().map(|clause| clause.evaluate(assignment)).reduce(|a, b| a && b).unwrap_or(true)
     }
+
+    fn first_pure_literal(&self) -> Option<Literal> {
+        let mut literal_map = HashMap::new();
+        for clause in &self.clauses {
+            for literal in &clause.literals {
+                if let Some(is_pure) = literal_map.get_mut(literal) {
+                    *is_pure = false;
+                } else {
+                    literal_map.insert(*literal, true);
+                }
+            }
+        }
+
+        literal_map.into_iter().find_map(|(literal, is_pure)| {
+            if is_pure {
+                Some(literal)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
+        self.clauses.iter().find_map(|clause| clause.literals.iter().find_map(|literal| {
+            let variable = literal.variable();
+            if !assignment.values.contains_key(&variable) {
+                Some(variable)
+            } else {
+                None
+            }
+        }))
+    }
+
+    fn first_unit_clause_literal(&self) -> Option<Literal> {
+        for clause in &self.clauses {
+            if clause.literals.len() == 1 {
+                return Some(clause.literals[0]);
+            }
+        }
+
+        None
+    }
 }
 
 struct Instance {
@@ -72,11 +121,11 @@ impl fmt::Debug for Instance {
             write!(f, "/\\ (")?;
             for literal in &clause.literals {
                 write!(f, "\\/ ")?;
-                let (variable_ref, is_negative) = match literal {
-                    Literal::Positive(variable_ref) => (variable_ref, false),
-                    Literal::Negative(variable_ref) => (variable_ref, true),
+                let (variable, is_negative) = match literal {
+                    Literal::Positive(variable) => (variable, false),
+                    Literal::Negative(variable) => (variable, true),
                 };
-                let variable_name = &self.variables[variable_ref.0 as usize].name;
+                let variable_name = &self.variables[variable.0 as usize].name;
                 if is_negative {
                     write!(f, "-")?;
                 }
@@ -108,7 +157,39 @@ enum Satisfiability {
     Unsatisfiable,
 }
 
-// TODO: Return satisfying (partial) assignment
+impl Satisfiability {
+    fn is_satisfiable(&self) -> bool {
+        match self {
+            Satisfiability::Satisfiable(_) => true,
+            Satisfiability::Unsatisfiable => false,
+        }
+    }
+}
+
+fn backtracking(formula: &Formula) -> Satisfiability {
+    fn go(formula: &Formula, assignment: &Assignment) -> Satisfiability {
+        if formula.evaluate(assignment) {
+            return Satisfiability::Satisfiable(assignment.clone());
+        }
+        if let Some(variable) = formula.first_unassigned_variable(assignment) {
+            let mut positive_assignment = assignment.clone();
+            positive_assignment.values.insert(variable, true);
+            let result = go(formula, &positive_assignment);
+            if result.is_satisfiable() {
+                return result;
+            }
+            let mut negative_assignment = assignment.clone();
+            negative_assignment.values.insert(variable, false);
+            let result = go(formula, &negative_assignment);
+            if result.is_satisfiable() {
+                return result;
+            }
+        }
+        Satisfiability::Unsatisfiable
+    }
+    go(formula, &Assignment::empty())
+}
+
 fn dpll(formula: &Formula) -> Satisfiability {
     fn go(formula: &Formula, assignment: &Assignment) -> Satisfiability {
         if formula.clauses.is_empty() {
@@ -116,16 +197,7 @@ fn dpll(formula: &Formula) -> Satisfiability {
         }
 
         // Unit clause rule
-        fn first_unit_clause_literal(formula: &Formula) -> Option<Literal> {
-            for clause in &formula.clauses {
-                if clause.literals.len() == 1 {
-                    return Some(clause.literals[0]);
-                }
-            }
-
-            None
-        }
-        if let Some(literal) = first_unit_clause_literal(formula) {
+        if let Some(literal) = formula.first_unit_clause_literal() {
             let clauses = formula.clauses.iter().filter_map(|clause| {
                 if clause.literals.contains(&literal) {
                     return None;
@@ -141,47 +213,27 @@ fn dpll(formula: &Formula) -> Satisfiability {
                 }
             }).collect();
             let mut assignment = assignment.clone();
-            let (variable_ref, value) = match literal {
-                Literal::Positive(variable_ref) => (variable_ref, true),
-                Literal::Negative(variable_ref) => (variable_ref, false),
+            let (variable, value) = match literal {
+                Literal::Positive(variable) => (variable, true),
+                Literal::Negative(variable) => (variable, false),
             };
-            assignment.values.insert(variable_ref, value);
+            assignment.values.insert(variable, value);
             return go(&Formula {
                 clauses,
             }, &assignment);
         }
 
         // Pure literal rule
-        fn first_pure_literal(formula: &Formula) -> Option<Literal> {
-            let mut literal_map = HashMap::new();
-            for clause in &formula.clauses {
-                for literal in &clause.literals {
-                    if let Some(is_pure) = literal_map.get_mut(literal) {
-                        *is_pure = false;
-                    } else {
-                        literal_map.insert(*literal, true);
-                    }
-                }
-            }
-
-            literal_map.into_iter().find_map(|(literal, is_pure)| {
-                if is_pure {
-                    Some(literal)
-                } else {
-                    None
-                }
-            })
-        }
-        if let Some(literal) = first_pure_literal(formula) {
+        if let Some(literal) = formula.first_pure_literal() {
             let clauses = formula.clauses.iter().filter(|clause| {
                 !clause.literals.contains(&literal) && !clause.literals.contains(&-literal)
             }).cloned().collect();
             let mut assignment = assignment.clone();
-            let (variable_ref, value) = match literal {
-                Literal::Positive(variable_ref) => (variable_ref, true),
-                Literal::Negative(variable_ref) => (variable_ref, false),
+            let (variable, value) = match literal {
+                Literal::Positive(variable) => (variable, true),
+                Literal::Negative(variable) => (variable, false),
             };
-            assignment.values.insert(variable_ref, value);
+            assignment.values.insert(variable, value);
             return go(&Formula {
                 clauses,
             }, &assignment);
@@ -226,9 +278,18 @@ fn main() {
     };
 
     println!("instance: {:?}", instance);
-    let result = dpll(&instance.formula);
-    println!("DPLL result: {:?}", result);
-    if let Satisfiability::Satisfiable(assignment) = result {
-        assert!(instance.formula.evaluate(&assignment));
+
+    let backtracking_result = backtracking(&instance.formula);
+    println!("backtracking result: {:?}", backtracking_result);
+    if let Satisfiability::Satisfiable(assignment) = &backtracking_result {
+        assert!(instance.formula.evaluate(assignment));
     }
+
+    let dpll_result = dpll(&instance.formula);
+    println!("DPLL result: {:?}", dpll_result);
+    if let Satisfiability::Satisfiable(assignment) = &dpll_result {
+        assert!(instance.formula.evaluate(assignment));
+    }
+
+    assert_eq!(backtracking_result.is_satisfiable(), dpll_result.is_satisfiable());
 }
