@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Neg;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Variable {
     name: String,
 }
@@ -57,6 +57,7 @@ impl Clause {
     }
 }
 
+#[derive(Clone)]
 struct Formula {
     clauses: Vec<Clause>,
 }
@@ -109,6 +110,7 @@ impl Formula {
     }
 }
 
+#[derive(Clone)]
 struct Instance {
     variables: Vec<Variable>,
     formula: Formula,
@@ -292,4 +294,29 @@ fn main() {
     }
 
     assert_eq!(backtracking_result.is_satisfiable(), dpll_result.is_satisfiable());
+}
+
+#[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for Instance {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[quickcheck]
+    fn backtracking_and_dpll_reach_the_same_conclusion(instance: Instance) -> bool {
+        let backtracking_result = backtracking(&instance.formula);
+        let dpll_result = dpll(&instance.formula);
+        backtracking_result.is_satisfiable() == dpll_result.is_satisfiable()
+    }
 }
