@@ -301,9 +301,60 @@ extern crate quickcheck;
 extern crate quickcheck_macros;
 
 #[cfg(test)]
+const ARBITRARY_NUM_VARIABLES: u32 = 8;
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for VariableRef {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)
+    }
+}
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for Literal {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        let variable = VariableRef::arbitrary(g);
+        if bool::arbitrary(g) {
+            Literal::Positive(variable)
+        } else {
+            Literal::Negative(variable)
+        }
+    }
+}
+
+#[cfg(test)]
+impl quickcheck::Arbitrary for Clause {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        let max_num_literals = 4;
+        // TODO: This excludes 0, which typically results in more interesting instances,
+        //  since any empty clause renders the entire instance unsatisfiable. However,
+        //  this may be an important case to check, so we may want to come up with a way
+        //  to conditionally include empty clauses with low probability of occurrence.
+        let num_literals = (u32::arbitrary(g) % max_num_literals) + 1;
+        Clause {
+            literals: (0..num_literals).map(|_| Literal::arbitrary(g)).collect(),
+        }
+    }
+}
+
+#[cfg(test)]
 impl quickcheck::Arbitrary for Instance {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        todo!()
+        let variables = (0..ARBITRARY_NUM_VARIABLES).map(|i| Variable {
+            name: format!("v{}", i),
+        }).collect();
+
+        // TODO: Find a good way to respect size that doesn't end up generating too many
+        //  unsatisfiable instances
+        let num_clauses = 4;//g.size();
+        let formula = Formula {
+            clauses: (0..num_clauses).map(|_| Clause::arbitrary(g)).collect(),
+        };
+
+        Instance {
+            variables,
+            formula,
+        }
     }
 }
 
@@ -313,8 +364,13 @@ mod tests {
 
     #[quickcheck]
     fn backtracking_and_dpll_reach_the_same_conclusion(instance: Instance) -> bool {
+        println!("instance: {:?}", instance);
         let backtracking_result = backtracking(&instance.formula);
+        println!("backtracking result: {:?}", backtracking_result);
         let dpll_result = dpll(&instance.formula);
-        backtracking_result.is_satisfiable() == dpll_result.is_satisfiable()
+        println!("dpll result: {:?}", dpll_result);
+        let ret = backtracking_result.is_satisfiable() == dpll_result.is_satisfiable();
+        println!();
+        ret
     }
 }
