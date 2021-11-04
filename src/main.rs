@@ -187,29 +187,29 @@ impl Satisfiability {
 }
 
 fn backtracking(formula: &Formula) -> Satisfiability {
-    fn go(formula: &Formula, assignment: &Assignment) -> Satisfiability {
-        if formula.evaluate(assignment) {
+    fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
+        if formula.evaluate(&assignment) {
             return Satisfiability::Satisfiable(assignment.clone());
         }
-        if let Some(variable) = formula.first_unassigned_variable(assignment) {
+        if let Some(variable) = formula.first_unassigned_variable(&assignment) {
             let positive_assignment = assignment.insert_assignment(variable, true);
-            let result = go(formula, &positive_assignment);
+            let result = go(formula, positive_assignment);
             if result.is_satisfiable() {
                 return result;
             }
             let negative_assignment = assignment.insert_assignment(variable, false);
-            let result = go(formula, &negative_assignment);
+            let result = go(formula, negative_assignment);
             if result.is_satisfiable() {
                 return result;
             }
         }
         Satisfiability::Unsatisfiable
     }
-    go(formula, &Assignment::empty())
+    go(formula, Assignment::empty())
 }
 
 fn dpll(formula: &Formula) -> Satisfiability {
-    fn go(formula: &Formula, assignment: &Assignment) -> Satisfiability {
+    fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
         if formula.clauses.is_empty() {
             return Satisfiability::Satisfiable(assignment.clone());
         }
@@ -229,7 +229,7 @@ fn dpll(formula: &Formula) -> Satisfiability {
             let assignment = assignment.insert_satisfying_assignment(literal);
             return go(&Formula {
                 clauses,
-            }, &assignment);
+            }, assignment);
         }
 
         // Pure literal rule
@@ -240,14 +240,14 @@ fn dpll(formula: &Formula) -> Satisfiability {
             let assignment = assignment.insert_satisfying_assignment(literal);
             return go(&Formula {
                 clauses,
-            }, &assignment);
+            }, assignment);
         }
 
         // TODO: Splitting rule
 
         Satisfiability::Unsatisfiable
     }
-    go(formula, &Assignment::empty())
+    go(formula, Assignment::empty())
 }
 
 fn main() {
