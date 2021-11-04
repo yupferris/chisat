@@ -151,6 +151,16 @@ impl Assignment {
             values: HashMap::new(),
         }
     }
+
+    fn insert_satisfying_assignment(&self, literal: Literal) -> Assignment {
+        let mut ret = self.clone();
+        let (variable, value) = match literal {
+            Literal::Positive(variable) => (variable, true),
+            Literal::Negative(variable) => (variable, false),
+        };
+        ret.values.insert(variable, value);
+        ret
+    }
 }
 
 #[derive(Debug)]
@@ -210,12 +220,7 @@ fn dpll(formula: &Formula) -> Satisfiability {
                     literals,
                 })
             }).collect();
-            let mut assignment = assignment.clone();
-            let (variable, value) = match literal {
-                Literal::Positive(variable) => (variable, true),
-                Literal::Negative(variable) => (variable, false),
-            };
-            assignment.values.insert(variable, value);
+            let assignment = assignment.insert_satisfying_assignment(literal);
             return go(&Formula {
                 clauses,
             }, &assignment);
@@ -226,12 +231,7 @@ fn dpll(formula: &Formula) -> Satisfiability {
             let clauses = formula.clauses.iter().filter(|clause| {
                 !clause.literals.contains(&literal) && !clause.literals.contains(&-literal)
             }).cloned().collect();
-            let mut assignment = assignment.clone();
-            let (variable, value) = match literal {
-                Literal::Positive(variable) => (variable, true),
-                Literal::Negative(variable) => (variable, false),
-            };
-            assignment.values.insert(variable, value);
+            let assignment = assignment.insert_satisfying_assignment(literal);
             return go(&Formula {
                 clauses,
             }, &assignment);
