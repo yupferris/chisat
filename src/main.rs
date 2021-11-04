@@ -154,6 +154,12 @@ impl Assignment {
         }
     }
 
+    fn insert_assignment(&self, variable: VariableRef, value: bool) -> Assignment {
+        let mut ret = self.clone();
+        ret.values.insert(variable, value);
+        ret
+    }
+
     fn insert_satisfying_assignment(&self, literal: Literal) -> Assignment {
         let mut ret = self.clone();
         let (variable, value) = match literal {
@@ -186,14 +192,12 @@ fn backtracking(formula: &Formula) -> Satisfiability {
             return Satisfiability::Satisfiable(assignment.clone());
         }
         if let Some(variable) = formula.first_unassigned_variable(assignment) {
-            let mut positive_assignment = assignment.clone();
-            positive_assignment.values.insert(variable, true);
+            let positive_assignment = assignment.insert_assignment(variable, true);
             let result = go(formula, &positive_assignment);
             if result.is_satisfiable() {
                 return result;
             }
-            let mut negative_assignment = assignment.clone();
-            negative_assignment.values.insert(variable, false);
+            let negative_assignment = assignment.insert_assignment(variable, false);
             let result = go(formula, &negative_assignment);
             if result.is_satisfiable() {
                 return result;
