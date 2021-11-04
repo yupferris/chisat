@@ -206,13 +206,9 @@ fn dpll(formula: &Formula) -> Satisfiability {
                 }
 
                 let literals = clause.literals.iter().copied().filter(|&l| l != -literal).collect::<Vec<_>>();
-                if !literals.is_empty() {
-                    Some(Clause {
-                        literals,
-                    })
-                } else {
-                    None
-                }
+                Some(Clause {
+                    literals,
+                })
             }).collect();
             let mut assignment = assignment.clone();
             let (variable, value) = match literal {
