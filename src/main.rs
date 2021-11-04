@@ -243,7 +243,43 @@ fn dpll(formula: &Formula) -> Satisfiability {
             }, assignment);
         }
 
-        // TODO: Splitting rule
+        // Splitting rule
+        if let Some(variable) = formula.first_unassigned_variable(&assignment) {
+            //  Positive case
+            let clauses = formula.clauses.iter().filter_map(|clause| {
+                if clause.literals.contains(&Literal::Positive(variable)) {
+                    return None;
+                }
+
+                Some(Clause {
+                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal::Negative(variable)).collect(),
+                })
+            }).collect();
+            let positive_assignment = assignment.insert_assignment(variable, true);
+            let result = go(&Formula {
+                clauses,
+            }, positive_assignment);
+            if result.is_satisfiable() {
+                return result;
+            }
+            //  Negative case
+            let clauses = formula.clauses.iter().filter_map(|clause| {
+                if clause.literals.contains(&Literal::Negative(variable)) {
+                    return None;
+                }
+
+                Some(Clause {
+                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal::Positive(variable)).collect(),
+                })
+            }).collect();
+            let negative_assignment = assignment.insert_assignment(variable, false);
+            let result = go(&Formula {
+                clauses,
+            }, negative_assignment);
+            if result.is_satisfiable() {
+                return result;
+            }
+        }
 
         Satisfiability::Unsatisfiable
     }
