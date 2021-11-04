@@ -367,8 +367,23 @@ mod tests {
     use super::*;
 
     #[quickcheck]
+    fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
+        match backtracking(&instance.formula) {
+            Satisfiability::Satisfiable(assignment) => instance.formula.evaluate(&assignment),
+            Satisfiability::Unsatisfiable => true,
+        }
+    }
+
+    #[quickcheck]
+    fn dpll_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
+        match dpll(&instance.formula) {
+            Satisfiability::Satisfiable(assignment) => instance.formula.evaluate(&assignment),
+            Satisfiability::Unsatisfiable => true,
+        }
+    }
+
+    #[quickcheck]
     fn backtracking_and_dpll_reach_the_same_conclusion(instance: Instance) -> bool {
-        println!("instance: {:?}", instance);
         let backtracking_result = backtracking(&instance.formula);
         println!("backtracking result: {:?}", backtracking_result);
         let dpll_result = dpll(&instance.formula);
