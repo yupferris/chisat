@@ -4,16 +4,16 @@ use std::fmt;
 use std::ops::Neg;
 
 #[derive(Clone, Debug)]
-struct Variable {
+pub struct Variable {
     name: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(transparent)]
-struct VariableRef(u32);
+pub struct VariableRef(u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-enum Literal {
+pub enum Literal {
     Positive(VariableRef),
     Negative(VariableRef),
 }
@@ -48,8 +48,8 @@ impl Neg for Literal {
 }
 
 #[derive(Clone, Debug)]
-struct Clause {
-    literals: Vec<Literal>,
+pub struct Clause {
+    pub literals: Vec<Literal>,
 }
 
 impl Clause {
@@ -59,12 +59,12 @@ impl Clause {
 }
 
 #[derive(Clone)]
-struct Formula {
-    clauses: Vec<Clause>,
+pub struct Formula {
+    pub clauses: Vec<Clause>,
 }
 
 impl Formula {
-    fn evaluate(&self, assignment: &Assignment) -> bool {
+    pub fn evaluate(&self, assignment: &Assignment) -> bool {
         self.clauses.iter().map(|clause| clause.evaluate(assignment)).reduce(|a, b| a && b).unwrap_or(true)
     }
 
@@ -113,9 +113,9 @@ impl Formula {
 }
 
 #[derive(Clone)]
-struct Instance {
-    variables: Vec<Variable>,
-    formula: Formula,
+pub struct Instance {
+    pub variables: Vec<Variable>,
+    pub formula: Formula,
 }
 
 impl fmt::Debug for Instance {
@@ -145,8 +145,8 @@ impl fmt::Debug for Instance {
 }
 
 #[derive(Clone, Debug)]
-struct Assignment {
-    values: HashMap<VariableRef, bool>,
+pub struct Assignment {
+    pub values: HashMap<VariableRef, bool>,
 }
 
 impl Assignment {
@@ -174,7 +174,7 @@ impl Assignment {
 }
 
 #[derive(Debug)]
-enum Satisfiability {
+pub enum Satisfiability {
     Satisfiable(Assignment),
     Unsatisfiable,
 }
@@ -188,7 +188,7 @@ impl Satisfiability {
     }
 }
 
-fn backtracking(formula: &Formula) -> Satisfiability {
+pub fn backtracking(formula: &Formula) -> Satisfiability {
     fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
         if formula.evaluate(&assignment) {
             return Satisfiability::Satisfiable(assignment.clone());
@@ -210,7 +210,7 @@ fn backtracking(formula: &Formula) -> Satisfiability {
     go(formula, Assignment::empty())
 }
 
-fn dpll(formula: &Formula) -> Satisfiability {
+pub fn dpll(formula: &Formula) -> Satisfiability {
     fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
         if formula.clauses.is_empty() {
             return Satisfiability::Satisfiable(assignment.clone());
@@ -286,54 +286,6 @@ fn dpll(formula: &Formula) -> Satisfiability {
         Satisfiability::Unsatisfiable
     }
     go(formula, Assignment::empty())
-}
-
-fn main() {
-    let instance = Instance {
-        variables: vec![
-            Variable {
-                name: "a".into(),
-            },
-            Variable {
-                name: "b".into(),
-            },
-        ],
-        formula: Formula {
-            clauses: vec![
-                Clause {
-                    literals: vec![
-                        Literal::Positive(VariableRef(0)),
-                    ],
-                },
-                Clause {
-                    literals: vec![
-                        Literal::Negative(VariableRef(1)),
-                    ],
-                },
-                Clause {
-                    literals: vec![
-                        Literal::Positive(VariableRef(1)),
-                    ],
-                },
-            ],
-        },
-    };
-
-    println!("instance: {:?}", instance);
-
-    let backtracking_result = backtracking(&instance.formula);
-    println!("backtracking result: {:?}", backtracking_result);
-    if let Satisfiability::Satisfiable(assignment) = &backtracking_result {
-        assert!(instance.formula.evaluate(assignment));
-    }
-
-    let dpll_result = dpll(&instance.formula);
-    println!("DPLL result: {:?}", dpll_result);
-    if let Satisfiability::Satisfiable(assignment) = &dpll_result {
-        assert!(instance.formula.evaluate(assignment));
-    }
-
-    assert_eq!(backtracking_result.is_satisfiable(), dpll_result.is_satisfiable());
 }
 
 #[cfg(test)]
