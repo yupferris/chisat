@@ -121,8 +121,10 @@ impl fmt::Debug for Instance {
         writeln!(f)?;
         for clause in &self.formula.clauses {
             write!(f, "/\\ (")?;
-            for literal in &clause.literals {
-                write!(f, "\\/ ")?;
+            for (i, literal) in clause.literals.iter().enumerate() {
+                if i != 0 {
+                    write!(f, " \\/ ")?;
+                }
                 let (variable, is_negative) = match literal {
                     Literal::Positive(variable) => (variable, false),
                     Literal::Negative(variable) => (variable, true),
