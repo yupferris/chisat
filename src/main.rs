@@ -369,7 +369,10 @@ mod tests {
     #[quickcheck]
     fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
         match backtracking(&instance.formula) {
-            Satisfiability::Satisfiable(assignment) => instance.formula.evaluate(&assignment),
+            Satisfiability::Satisfiable(assignment) => {
+                println!("Satisfying assignment: {:?}", assignment);
+                instance.formula.evaluate(&assignment)
+            }
             Satisfiability::Unsatisfiable => true,
         }
     }
@@ -377,7 +380,10 @@ mod tests {
     #[quickcheck]
     fn dpll_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
         match dpll(&instance.formula) {
-            Satisfiability::Satisfiable(assignment) => instance.formula.evaluate(&assignment),
+            Satisfiability::Satisfiable(assignment) => {
+                println!("Satisfying assignment: {:?}", assignment);
+                instance.formula.evaluate(&assignment)
+            }
             Satisfiability::Unsatisfiable => true,
         }
     }
