@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::identity;
 use std::fmt;
 use std::ops::Neg;
 
@@ -68,24 +69,25 @@ impl Formula {
     }
 
     fn first_pure_literal(&self) -> Option<Literal> {
-        let mut literal_map = HashMap::new();
+        let mut variable_map = HashMap::new();
         for clause in &self.clauses {
             for literal in &clause.literals {
-                if let Some(is_pure) = literal_map.get_mut(literal) {
-                    *is_pure = false;
+                let variable = literal.variable();
+                if let Some(prev_literal) = variable_map.get_mut(&variable) {
+                    match (&prev_literal, literal) {
+                        (Some(Literal::Positive(_)), Literal::Positive(_)) | (Some(Literal::Negative(_)), Literal::Negative(_)) => (),
+                        (Some(_), _) => {
+                            *prev_literal = None;
+                        }
+                        _ => (),
+                    }
                 } else {
-                    literal_map.insert(*literal, true);
+                    variable_map.insert(variable, Some(*literal));
                 }
             }
         }
 
-        literal_map.into_iter().find_map(|(literal, is_pure)| {
-            if is_pure {
-                Some(literal)
-            } else {
-                None
-            }
-        })
+        variable_map.values().copied().find_map(identity)
     }
 
     fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
