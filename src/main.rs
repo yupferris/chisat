@@ -237,7 +237,7 @@ fn dpll(formula: &Formula) -> Satisfiability {
             }, &assignment);
         }
 
-        // TODO: Try negative and positive partial assignments
+        // TODO: Splitting rule
 
         Satisfiability::Unsatisfiable
     }
