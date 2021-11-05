@@ -57,6 +57,26 @@ pub struct Formula {
 }
 
 impl Formula {
+    fn assign(&self, variable: VariableRef, value: bool) -> Formula {
+        Formula {
+            clauses: self.clauses.iter().filter_map(|clause| {
+                if clause.literals.contains(&Literal {
+                    variable,
+                    is_positive: value,
+                }) {
+                    return None;
+                }
+
+                Some(Clause {
+                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal {
+                        variable,
+                        is_positive: !value,
+                    }).collect(),
+                })
+            }).collect(),
+        }
+    }
+
     pub fn evaluate(&self, assignment: &Assignment) -> bool {
         self.clauses.iter().map(|clause| clause.evaluate(assignment)).reduce(|a, b| a && b).unwrap_or(true)
     }
@@ -177,13 +197,11 @@ pub fn backtracking(formula: &Formula) -> Satisfiability {
             return Satisfiability::Satisfiable(assignment);
         }
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
-            let positive_assignment = assignment.insert_assignment(variable, true);
-            let result = go(formula, positive_assignment);
+            let result = go(formula, assignment.insert_assignment(variable, true));
             if result.is_satisfiable() {
                 return result;
             }
-            let negative_assignment = assignment.insert_assignment(variable, false);
-            let result = go(formula, negative_assignment);
+            let result = go(formula, assignment.insert_assignment(variable, false));
             if result.is_satisfiable() {
                 return result;
             }
@@ -231,48 +249,18 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
         // Splitting rule
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
             //  Positive case
-            let clauses = formula.clauses.iter().filter_map(|clause| {
-                if clause.literals.contains(&Literal {
-                    variable,
-                    is_positive: true,
-                }) {
-                    return None;
-                }
-
-                Some(Clause {
-                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal {
-                        variable,
-                        is_positive: false,
-                    }).collect(),
-                })
-            }).collect();
-            let positive_assignment = assignment.insert_assignment(variable, true);
-            let result = go(&Formula {
-                clauses,
-            }, positive_assignment);
+            let result = go(
+                &formula.assign(variable, true),
+                assignment.insert_assignment(variable, true),
+            );
             if result.is_satisfiable() {
                 return result;
             }
             //  Negative case
-            let clauses = formula.clauses.iter().filter_map(|clause| {
-                if clause.literals.contains(&Literal {
-                    variable,
-                    is_positive: false,
-                }) {
-                    return None;
-                }
-
-                Some(Clause {
-                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal {
-                        variable,
-                        is_positive: true,
-                    }).collect(),
-                })
-            }).collect();
-            let negative_assignment = assignment.insert_assignment(variable, false);
-            let result = go(&Formula {
-                clauses,
-            }, negative_assignment);
+            let result = go(
+                &formula.assign(variable, false),
+                assignment.insert_assignment(variable, false),
+            );
             if result.is_satisfiable() {
                 return result;
             }
