@@ -174,25 +174,10 @@ impl Assignment {
     }
 }
 
-#[derive(Debug)]
-pub enum Satisfiability {
-    Satisfiable(Assignment),
-    Unsatisfiable,
-}
-
-impl Satisfiability {
-    fn is_satisfiable(&self) -> bool {
-        match self {
-            Satisfiability::Satisfiable(_) => true,
-            Satisfiability::Unsatisfiable => false,
-        }
-    }
-}
-
-pub fn backtracking(formula: &Formula) -> (Satisfiability, u32) {
-    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Satisfiability {
+pub fn backtracking(formula: &Formula) -> (Option<Assignment>, u32) {
+    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
         if formula.evaluate(&assignment) {
-            return Satisfiability::Satisfiable(assignment);
+            return Some(assignment);
         }
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
             for value in [false, true] {
@@ -202,25 +187,25 @@ pub fn backtracking(formula: &Formula) -> (Satisfiability, u32) {
                     assignment.insert_assignment(variable, value),
                     num_search_steps,
                 );
-                if result.is_satisfiable() {
+                if result.is_some() {
                     return result;
                 }
             }
         }
-        Satisfiability::Unsatisfiable
+        None
     }
     let mut num_search_steps = 0;
     (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
 }
 
-pub fn dpll(formula: &Formula) -> (Satisfiability, u32) {
-    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Satisfiability {
+pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
+    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
         if formula.clauses.is_empty() {
-            return Satisfiability::Satisfiable(assignment);
+            return Some(assignment);
         }
 
         if formula.clauses.iter().any(|clause| clause.is_empty()) {
-            return Satisfiability::Unsatisfiable;
+            return None;
         }
 
         // Unit clause rule
@@ -255,13 +240,13 @@ pub fn dpll(formula: &Formula) -> (Satisfiability, u32) {
                     assignment.insert_assignment(variable, value),
                     num_search_steps,
                 );
-                if result.is_satisfiable() {
+                if result.is_some() {
                     return result;
                 }
             }
         }
 
-        Satisfiability::Unsatisfiable
+        None
     }
     let mut num_search_steps = 0;
     (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
@@ -327,22 +312,22 @@ mod tests {
     #[quickcheck]
     fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
         match backtracking(&instance.formula).0 {
-            Satisfiability::Satisfiable(assignment) => {
+            Some(assignment) => {
                 println!("Satisfying assignment: {:?}", assignment);
                 instance.formula.evaluate(&assignment)
             }
-            Satisfiability::Unsatisfiable => true,
+            _ => true,
         }
     }
 
     #[quickcheck]
     fn dpll_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
         match dpll(&instance.formula).0 {
-            Satisfiability::Satisfiable(assignment) => {
+            Some(assignment) => {
                 println!("Satisfying assignment: {:?}", assignment);
                 instance.formula.evaluate(&assignment)
             }
-            Satisfiability::Unsatisfiable => true,
+            _ => true,
         }
     }
 
@@ -352,7 +337,7 @@ mod tests {
         println!("backtracking result: {:?}", backtracking_result);
         let dpll_result = dpll(&instance.formula);
         println!("dpll result: {:?}", dpll_result);
-        let ret = backtracking_result.0.is_satisfiable() == dpll_result.0.is_satisfiable();
+        let ret = backtracking_result.0.is_some() == dpll_result.0.is_some();
         println!();
         ret
     }
