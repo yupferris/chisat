@@ -35,7 +35,6 @@ impl Literal {
     }
 }
 
-// TODO: Is Not a better choice perhaps?
 impl Neg for Literal {
     type Output = Literal;
 
