@@ -1,6 +1,11 @@
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 use std::collections::HashMap;
 use std::convert::identity;
 use std::fmt;
+use std::hash::Hash;
 use std::ops::Neg;
 
 #[derive(Clone, Debug)]
@@ -13,25 +18,14 @@ pub struct Variable {
 pub struct VariableRef(u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Literal {
-    Positive(VariableRef),
-    Negative(VariableRef),
+pub struct Literal {
+    pub variable: VariableRef,
+    pub is_positive: bool,
 }
 
 impl Literal {
     fn evaluate(&self, assignment: &Assignment) -> bool {
-        let (variable, is_negative) = match self {
-            Literal::Positive(variable) => (variable, false),
-            Literal::Negative(variable) => (variable, true),
-        };
-        assignment.values.get(&variable).map(|&value| value ^ is_negative).unwrap_or(false)
-    }
-
-    fn variable(&self) -> VariableRef {
-        match self {
-            &Literal::Positive(variable) => variable,
-            &Literal::Negative(variable) => variable,
-        }
+        assignment.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
     }
 }
 
@@ -39,9 +33,9 @@ impl Neg for Literal {
     type Output = Literal;
 
     fn neg(self) -> Self::Output {
-        match self {
-            Literal::Positive(variable) => Literal::Negative(variable),
-            Literal::Negative(variable) => Literal::Positive(variable),
+        Literal {
+            is_positive: !self.is_positive,
+            ..self
         }
     }
 }
@@ -68,17 +62,15 @@ impl Formula {
     }
 
     fn first_pure_literal(&self) -> Option<Literal> {
-        let mut variable_map = HashMap::new();
+        let mut variable_map: HashMap<VariableRef, Option<Literal>> = HashMap::new();
         for clause in &self.clauses {
             for literal in &clause.literals {
-                let variable = literal.variable();
+                let variable = literal.variable;
                 if let Some(prev_literal) = variable_map.get_mut(&variable) {
-                    match (&prev_literal, literal) {
-                        (Some(Literal::Positive(_)), Literal::Positive(_)) | (Some(Literal::Negative(_)), Literal::Negative(_)) => (),
-                        (Some(_), _) => {
+                    if let Some(prev_literal_value) = prev_literal {
+                        if literal.is_positive != prev_literal_value.is_positive {
                             *prev_literal = None;
                         }
-                        _ => (),
                     }
                 } else {
                     variable_map.insert(variable, Some(*literal));
@@ -91,7 +83,7 @@ impl Formula {
 
     fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
         self.clauses.iter().find_map(|clause| clause.literals.iter().find_map(|literal| {
-            let variable = literal.variable();
+            let variable = literal.variable;
             if !assignment.values.contains_key(&variable) {
                 Some(variable)
             } else {
@@ -126,12 +118,8 @@ impl fmt::Debug for Instance {
                 if i != 0 {
                     write!(f, " \\/ ")?;
                 }
-                let (variable, is_negative) = match literal {
-                    Literal::Positive(variable) => (variable, false),
-                    Literal::Negative(variable) => (variable, true),
-                };
-                let variable_name = &self.variables[variable.0 as usize].name;
-                if is_negative {
+                let variable_name = &self.variables[literal.variable.0 as usize].name;
+                if !literal.is_positive {
                     write!(f, "-")?;
                 }
                 write!(f, "{}", variable_name)?;
@@ -163,11 +151,7 @@ impl Assignment {
 
     fn insert_satisfying_assignment(&self, literal: Literal) -> Assignment {
         let mut ret = self.clone();
-        let (variable, value) = match literal {
-            Literal::Positive(variable) => (variable, true),
-            Literal::Negative(variable) => (variable, false),
-        };
-        ret.values.insert(variable, value);
+        ret.values.insert(literal.variable, literal.is_positive);
         ret
     }
 }
@@ -248,12 +232,18 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
             //  Positive case
             let clauses = formula.clauses.iter().filter_map(|clause| {
-                if clause.literals.contains(&Literal::Positive(variable)) {
+                if clause.literals.contains(&Literal {
+                    variable,
+                    is_positive: true,
+                }) {
                     return None;
                 }
 
                 Some(Clause {
-                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal::Negative(variable)).collect(),
+                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal {
+                        variable,
+                        is_positive: false,
+                    }).collect(),
                 })
             }).collect();
             let positive_assignment = assignment.insert_assignment(variable, true);
@@ -265,12 +255,18 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
             }
             //  Negative case
             let clauses = formula.clauses.iter().filter_map(|clause| {
-                if clause.literals.contains(&Literal::Negative(variable)) {
+                if clause.literals.contains(&Literal {
+                    variable,
+                    is_positive: false,
+                }) {
                     return None;
                 }
 
                 Some(Clause {
-                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal::Positive(variable)).collect(),
+                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal {
+                        variable,
+                        is_positive: true,
+                    }).collect(),
                 })
             }).collect();
             let negative_assignment = assignment.insert_assignment(variable, false);
@@ -288,72 +284,61 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
 }
 
 #[cfg(test)]
-extern crate quickcheck;
-#[cfg(test)]
-#[macro_use(quickcheck)]
-extern crate quickcheck_macros;
-
-#[cfg(test)]
-const ARBITRARY_NUM_VARIABLES: u32 = 8;
-
-#[cfg(test)]
-impl quickcheck::Arbitrary for VariableRef {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)
-    }
-}
-
-#[cfg(test)]
-impl quickcheck::Arbitrary for Literal {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        let variable = VariableRef::arbitrary(g);
-        if bool::arbitrary(g) {
-            Literal::Positive(variable)
-        } else {
-            Literal::Negative(variable)
-        }
-    }
-}
-
-#[cfg(test)]
-impl quickcheck::Arbitrary for Clause {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        let max_num_literals = 4;
-        // TODO: This excludes 0, which typically results in more interesting instances,
-        //  since any empty clause renders the entire instance unsatisfiable. However,
-        //  this may be an important case to check, so we may want to come up with a way
-        //  to conditionally include empty clauses with low probability of occurrence.
-        let num_literals = (u32::arbitrary(g) % max_num_literals) + 1;
-        Clause {
-            literals: (0..num_literals).map(|_| Literal::arbitrary(g)).collect(),
-        }
-    }
-}
-
-#[cfg(test)]
-impl quickcheck::Arbitrary for Instance {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        let variables = (0..ARBITRARY_NUM_VARIABLES).map(|i| Variable {
-            name: format!("v{}", i),
-        }).collect();
-
-        // TODO: Find a good way to respect size that doesn't end up generating too many
-        //  unsatisfiable instances
-        let num_clauses = 4;//g.size();
-        let formula = Formula {
-            clauses: (0..num_clauses).map(|_| Clause::arbitrary(g)).collect(),
-        };
-
-        Instance {
-            variables,
-            formula,
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
+
+    extern crate quickcheck;
+
+    const ARBITRARY_NUM_VARIABLES: u32 = 8;
+
+    impl quickcheck::Arbitrary for VariableRef {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)
+        }
+    }
+
+    impl quickcheck::Arbitrary for Literal {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Literal {
+                variable: VariableRef::arbitrary(g),
+                is_positive: bool::arbitrary(g),
+            }
+        }
+    }
+
+    impl quickcheck::Arbitrary for Clause {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let max_num_literals = 4;
+            // TODO: This excludes 0, which typically results in more interesting instances,
+            //  since any empty clause renders the entire instance unsatisfiable. However,
+            //  this may be an important case to check, so we may want to come up with a way
+            //  to conditionally include empty clauses with low probability of occurrence.
+            let num_literals = (u32::arbitrary(g) % max_num_literals) + 1;
+            Clause {
+                literals: (0..num_literals).map(|_| Literal::arbitrary(g)).collect(),
+            }
+        }
+    }
+
+    impl quickcheck::Arbitrary for Instance {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let variables = (0..ARBITRARY_NUM_VARIABLES).map(|i| Variable {
+                name: format!("v{}", i),
+            }).collect();
+
+            // TODO: Find a good way to respect size that doesn't end up generating too many
+            //  unsatisfiable instances
+            let num_clauses = 4;//g.size();
+            let formula = Formula {
+                clauses: (0..num_clauses).map(|_| Clause::arbitrary(g)).collect(),
+            };
+
+            Instance {
+                variables,
+                formula,
+            }
+        }
+    }
 
     #[quickcheck]
     fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
