@@ -191,23 +191,16 @@ pub fn backtracking(formula: &Formula) -> (Satisfiability, u32) {
             return Satisfiability::Satisfiable(assignment);
         }
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
-            *num_search_steps += 1;
-            let result = go(
-                formula,
-                assignment.insert_assignment(variable, true),
-                num_search_steps,
-            );
-            if result.is_satisfiable() {
-                return result;
-            }
-            *num_search_steps += 1;
-            let result = go(
-                formula,
-                assignment.insert_assignment(variable, false),
-                num_search_steps,
-            );
-            if result.is_satisfiable() {
-                return result;
+            for value in [false, true] {
+                *num_search_steps += 1;
+                let result = go(
+                    formula,
+                    assignment.insert_assignment(variable, value),
+                    num_search_steps,
+                );
+                if result.is_satisfiable() {
+                    return result;
+                }
             }
         }
         Satisfiability::Unsatisfiable
@@ -247,25 +240,16 @@ pub fn dpll(formula: &Formula) -> (Satisfiability, u32) {
 
         // Splitting rule
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
-            //  Positive case
-            *num_search_steps += 1;
-            let result = go(
-                &formula.assign(variable, true),
-                assignment.insert_assignment(variable, true),
-                num_search_steps,
-            );
-            if result.is_satisfiable() {
-                return result;
-            }
-            //  Negative case
-            *num_search_steps += 1;
-            let result = go(
-                &formula.assign(variable, false),
-                assignment.insert_assignment(variable, false),
-                num_search_steps,
-            );
-            if result.is_satisfiable() {
-                return result;
+            for value in [false, true] {
+                *num_search_steps += 1;
+                let result = go(
+                    &formula.assign(variable, value),
+                    assignment.insert_assignment(variable, value),
+                    num_search_steps,
+                );
+                if result.is_satisfiable() {
+                    return result;
+                }
             }
         }
 
