@@ -168,12 +168,6 @@ impl Assignment {
         ret.values.insert(variable, value);
         ret
     }
-
-    fn insert_satisfying_assignment(&self, literal: Literal) -> Assignment {
-        let mut ret = self.clone();
-        ret.values.insert(literal.variable, literal.is_positive);
-        ret
-    }
 }
 
 #[derive(Debug)]
@@ -230,31 +224,25 @@ pub fn dpll(formula: &Formula) -> (Satisfiability, u32) {
 
         // Unit clause rule
         if let Some(literal) = formula.first_unit_clause_literal() {
-            let clauses = formula.clauses.iter().filter_map(|clause| {
-                if clause.literals.contains(&literal) {
-                    return None;
-                }
-
-                let literals = clause.literals.iter().copied().filter(|&l| l != -literal).collect::<Vec<_>>();
-                Some(Clause {
-                    literals,
-                })
-            }).collect();
-            let assignment = assignment.insert_satisfying_assignment(literal);
-            return go(&Formula {
-                clauses,
-            }, assignment, num_search_steps);
+            return go(
+                &formula.assign(literal.variable, literal.is_positive),
+                assignment.insert_assignment(literal.variable, literal.is_positive),
+                num_search_steps,
+            );
         }
 
         // Pure literal rule
         if let Some(literal) = formula.first_pure_literal() {
-            let clauses = formula.clauses.iter().filter(|clause| {
-                !clause.literals.contains(&literal) && !clause.literals.contains(&-literal)
-            }).cloned().collect();
-            let assignment = assignment.insert_satisfying_assignment(literal);
-            return go(&Formula {
-                clauses,
-            }, assignment, num_search_steps);
+            return go(
+                // In the pure literal case, we can perform additional simplification compared to simple assignment
+                &Formula {
+                    clauses: formula.clauses.iter().filter(|clause| {
+                        !clause.literals.contains(&literal) && !clause.literals.contains(&-literal)
+                    }).cloned().collect(),
+                },
+                assignment.insert_assignment(literal.variable, literal.is_positive),
+                num_search_steps,
+            );
         }
 
         // Splitting rule
