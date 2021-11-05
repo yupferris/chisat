@@ -190,7 +190,7 @@ impl Satisfiability {
 pub fn backtracking(formula: &Formula) -> Satisfiability {
     fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
         if formula.evaluate(&assignment) {
-            return Satisfiability::Satisfiable(assignment.clone());
+            return Satisfiability::Satisfiable(assignment);
         }
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
             let positive_assignment = assignment.insert_assignment(variable, true);
@@ -212,7 +212,7 @@ pub fn backtracking(formula: &Formula) -> Satisfiability {
 pub fn dpll(formula: &Formula) -> Satisfiability {
     fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
         if formula.clauses.is_empty() {
-            return Satisfiability::Satisfiable(assignment.clone());
+            return Satisfiability::Satisfiable(assignment);
         }
 
         // Unit clause rule
