@@ -49,6 +49,10 @@ impl Clause {
     fn evaluate(&self, assignment: &Assignment) -> bool {
         self.literals.iter().map(|literal| literal.evaluate(assignment)).reduce(|a, b| a || b).unwrap_or(false)
     }
+
+    fn is_empty(&self) -> bool {
+        self.literals.is_empty()
+    }
 }
 
 #[derive(Clone)]
@@ -213,6 +217,10 @@ pub fn dpll(formula: &Formula) -> (Satisfiability, u32) {
     fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Satisfiability {
         if formula.clauses.is_empty() {
             return Satisfiability::Satisfiable(assignment);
+        }
+
+        if formula.clauses.iter().any(|clause| clause.is_empty()) {
+            return Satisfiability::Unsatisfiable;
         }
 
         // Unit clause rule
