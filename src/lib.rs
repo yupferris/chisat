@@ -24,8 +24,8 @@ pub struct Literal {
 }
 
 impl Literal {
-    fn evaluate(&self, assignment: &Assignment) -> bool {
-        assignment.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
+    fn evaluate(&self, interpretation: &Interpretation) -> bool {
+        interpretation.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
     }
 }
 
@@ -46,8 +46,8 @@ pub struct Clause {
 }
 
 impl Clause {
-    fn evaluate(&self, assignment: &Assignment) -> bool {
-        self.literals.iter().map(|literal| literal.evaluate(assignment)).reduce(|a, b| a || b).unwrap_or(false)
+    fn evaluate(&self, interpretation: &Interpretation) -> bool {
+        self.literals.iter().map(|literal| literal.evaluate(interpretation)).reduce(|a, b| a || b).unwrap_or(false)
     }
 
     fn is_empty(&self) -> bool {
@@ -81,8 +81,8 @@ impl Formula {
         }
     }
 
-    pub fn evaluate(&self, assignment: &Assignment) -> bool {
-        self.clauses.iter().map(|clause| clause.evaluate(assignment)).reduce(|a, b| a && b).unwrap_or(true)
+    pub fn evaluate(&self, interpretation: &Interpretation) -> bool {
+        self.clauses.iter().map(|clause| clause.evaluate(interpretation)).reduce(|a, b| a && b).unwrap_or(true)
     }
 
     fn first_pure_literal(&self) -> Option<Literal> {
@@ -105,10 +105,10 @@ impl Formula {
         variable_map.values().copied().find_map(identity)
     }
 
-    fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
+    fn first_unassigned_variable(&self, interpretation: &Interpretation) -> Option<VariableRef> {
         self.clauses.iter().find_map(|clause| clause.literals.iter().find_map(|literal| {
             let variable = literal.variable;
-            if !assignment.values.contains_key(&variable) {
+            if !interpretation.values.contains_key(&variable) {
                 Some(variable)
             } else {
                 None
@@ -156,35 +156,35 @@ impl fmt::Debug for Instance {
 }
 
 #[derive(Clone, Debug)]
-pub struct Assignment {
+pub struct Interpretation {
     pub values: HashMap<VariableRef, bool>,
 }
 
-impl Assignment {
-    fn empty() -> Assignment {
-        Assignment {
-            values: HashMap::new(),
-        }
-    }
-
-    fn insert_assignment(&self, variable: VariableRef, value: bool) -> Assignment {
+impl Interpretation {
+    fn assign(&self, variable: VariableRef, value: bool) -> Interpretation {
         let mut ret = self.clone();
         ret.values.insert(variable, value);
         ret
     }
+
+    fn empty() -> Interpretation {
+        Interpretation {
+            values: HashMap::new(),
+        }
+    }
 }
 
-pub fn backtracking(formula: &Formula) -> (Option<Assignment>, u32) {
-    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
-        if formula.evaluate(&assignment) {
-            return Some(assignment);
+pub fn backtracking(formula: &Formula) -> (Option<Interpretation>, u32) {
+    fn go(formula: &Formula, interpretation: Interpretation, num_search_steps: &mut u32) -> Option<Interpretation> {
+        if formula.evaluate(&interpretation) {
+            return Some(interpretation);
         }
-        if let Some(variable) = formula.first_unassigned_variable(&assignment) {
+        if let Some(variable) = formula.first_unassigned_variable(&interpretation) {
             for value in [false, true] {
                 *num_search_steps += 1;
                 let result = go(
                     formula,
-                    assignment.insert_assignment(variable, value),
+                    interpretation.assign(variable, value),
                     num_search_steps,
                 );
                 if result.is_some() {
@@ -195,13 +195,13 @@ pub fn backtracking(formula: &Formula) -> (Option<Assignment>, u32) {
         None
     }
     let mut num_search_steps = 0;
-    (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
+    (go(formula, Interpretation::empty(), &mut num_search_steps), num_search_steps)
 }
 
-pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
-    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
+pub fn dpll(formula: &Formula) -> (Option<Interpretation>, u32) {
+    fn go(formula: &Formula, interpretation: Interpretation, num_search_steps: &mut u32) -> Option<Interpretation> {
         if formula.clauses.is_empty() {
-            return Some(assignment);
+            return Some(interpretation);
         }
 
         if formula.clauses.iter().any(|clause| clause.is_empty()) {
@@ -212,7 +212,7 @@ pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
         if let Some(literal) = formula.first_unit_clause_literal() {
             return go(
                 &formula.assign(literal.variable, literal.is_positive),
-                assignment.insert_assignment(literal.variable, literal.is_positive),
+                interpretation.assign(literal.variable, literal.is_positive),
                 num_search_steps,
             );
         }
@@ -226,18 +226,18 @@ pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
                         !clause.literals.contains(&literal) && !clause.literals.contains(&-literal)
                     }).cloned().collect(),
                 },
-                assignment.insert_assignment(literal.variable, literal.is_positive),
+                interpretation.assign(literal.variable, literal.is_positive),
                 num_search_steps,
             );
         }
 
         // Splitting rule
-        if let Some(variable) = formula.first_unassigned_variable(&assignment) {
+        if let Some(variable) = formula.first_unassigned_variable(&interpretation) {
             for value in [false, true] {
                 *num_search_steps += 1;
                 let result = go(
                     &formula.assign(variable, value),
-                    assignment.insert_assignment(variable, value),
+                    interpretation.assign(variable, value),
                     num_search_steps,
                 );
                 if result.is_some() {
@@ -249,7 +249,7 @@ pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
         None
     }
     let mut num_search_steps = 0;
-    (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
+    (go(formula, Interpretation::empty(), &mut num_search_steps), num_search_steps)
 }
 
 #[cfg(test)]
@@ -310,22 +310,22 @@ mod tests {
     }
 
     #[quickcheck]
-    fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
+    fn backtracking_satisfying_interpretations_are_satisfying(instance: Instance) -> bool {
         match backtracking(&instance.formula).0 {
-            Some(assignment) => {
-                println!("Satisfying assignment: {:?}", assignment);
-                instance.formula.evaluate(&assignment)
+            Some(interpretation) => {
+                println!("Satisfying interpretation: {:?}", interpretation);
+                instance.formula.evaluate(&interpretation)
             }
             _ => true,
         }
     }
 
     #[quickcheck]
-    fn dpll_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
+    fn dpll_satisfying_interpretations_are_satisfying(instance: Instance) -> bool {
         match dpll(&instance.formula).0 {
-            Some(assignment) => {
-                println!("Satisfying assignment: {:?}", assignment);
-                instance.formula.evaluate(&assignment)
+            Some(interpretation) => {
+                println!("Satisfying interpretation: {:?}", interpretation);
+                instance.formula.evaluate(&interpretation)
             }
             _ => true,
         }
