@@ -220,12 +220,7 @@ pub fn dpll(formula: &Formula) -> (Option<Interpretation>, u32) {
         // Pure literal rule
         if let Some(literal) = formula.first_pure_literal() {
             return go(
-                // In the pure literal case, we can perform additional simplification compared to simple assignment
-                &Formula {
-                    clauses: formula.clauses.iter().filter(|clause| {
-                        !clause.literals.contains(&literal) && !clause.literals.contains(&-literal)
-                    }).cloned().collect(),
-                },
+                &formula.assign(literal.variable, literal.is_positive),
                 interpretation.assign(literal.variable, literal.is_positive),
                 num_search_steps,
             );
