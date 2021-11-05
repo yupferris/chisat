@@ -191,28 +191,39 @@ impl Satisfiability {
     }
 }
 
-pub fn backtracking(formula: &Formula) -> Satisfiability {
-    fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
+pub fn backtracking(formula: &Formula) -> (Satisfiability, u32) {
+    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Satisfiability {
         if formula.evaluate(&assignment) {
             return Satisfiability::Satisfiable(assignment);
         }
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
-            let result = go(formula, assignment.insert_assignment(variable, true));
+            *num_search_steps += 1;
+            let result = go(
+                formula,
+                assignment.insert_assignment(variable, true),
+                num_search_steps,
+            );
             if result.is_satisfiable() {
                 return result;
             }
-            let result = go(formula, assignment.insert_assignment(variable, false));
+            *num_search_steps += 1;
+            let result = go(
+                formula,
+                assignment.insert_assignment(variable, false),
+                num_search_steps,
+            );
             if result.is_satisfiable() {
                 return result;
             }
         }
         Satisfiability::Unsatisfiable
     }
-    go(formula, Assignment::empty())
+    let mut num_search_steps = 0;
+    (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
 }
 
-pub fn dpll(formula: &Formula) -> Satisfiability {
-    fn go(formula: &Formula, assignment: Assignment) -> Satisfiability {
+pub fn dpll(formula: &Formula) -> (Satisfiability, u32) {
+    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Satisfiability {
         if formula.clauses.is_empty() {
             return Satisfiability::Satisfiable(assignment);
         }
@@ -232,7 +243,7 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
             let assignment = assignment.insert_satisfying_assignment(literal);
             return go(&Formula {
                 clauses,
-            }, assignment);
+            }, assignment, num_search_steps);
         }
 
         // Pure literal rule
@@ -243,23 +254,27 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
             let assignment = assignment.insert_satisfying_assignment(literal);
             return go(&Formula {
                 clauses,
-            }, assignment);
+            }, assignment, num_search_steps);
         }
 
         // Splitting rule
         if let Some(variable) = formula.first_unassigned_variable(&assignment) {
             //  Positive case
+            *num_search_steps += 1;
             let result = go(
                 &formula.assign(variable, true),
                 assignment.insert_assignment(variable, true),
+                num_search_steps,
             );
             if result.is_satisfiable() {
                 return result;
             }
             //  Negative case
+            *num_search_steps += 1;
             let result = go(
                 &formula.assign(variable, false),
                 assignment.insert_assignment(variable, false),
+                num_search_steps,
             );
             if result.is_satisfiable() {
                 return result;
@@ -268,7 +283,8 @@ pub fn dpll(formula: &Formula) -> Satisfiability {
 
         Satisfiability::Unsatisfiable
     }
-    go(formula, Assignment::empty())
+    let mut num_search_steps = 0;
+    (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
 }
 
 #[cfg(test)]
@@ -330,7 +346,7 @@ mod tests {
 
     #[quickcheck]
     fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
-        match backtracking(&instance.formula) {
+        match backtracking(&instance.formula).0 {
             Satisfiability::Satisfiable(assignment) => {
                 println!("Satisfying assignment: {:?}", assignment);
                 instance.formula.evaluate(&assignment)
@@ -341,7 +357,7 @@ mod tests {
 
     #[quickcheck]
     fn dpll_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
-        match dpll(&instance.formula) {
+        match dpll(&instance.formula).0 {
             Satisfiability::Satisfiable(assignment) => {
                 println!("Satisfying assignment: {:?}", assignment);
                 instance.formula.evaluate(&assignment)
@@ -356,8 +372,17 @@ mod tests {
         println!("backtracking result: {:?}", backtracking_result);
         let dpll_result = dpll(&instance.formula);
         println!("dpll result: {:?}", dpll_result);
-        let ret = backtracking_result.is_satisfiable() == dpll_result.is_satisfiable();
+        let ret = backtracking_result.0.is_satisfiable() == dpll_result.0.is_satisfiable();
         println!();
         ret
+    }
+
+    #[quickcheck]
+    fn dpll_uses_the_same_or_fewer_search_steps_than_backtracking(instance: Instance) -> bool {
+        let backtracking_result = backtracking(&instance.formula);
+        println!("backtracking result: {:?}", backtracking_result);
+        let dpll_result = dpll(&instance.formula);
+        println!("dpll result: {:?}", dpll_result);
+        dpll_result.1 <= backtracking_result.1
     }
 }
