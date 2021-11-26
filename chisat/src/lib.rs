@@ -10,12 +10,12 @@ use std::ops::Neg;
 
 #[derive(Clone, Debug)]
 pub struct Variable {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(transparent)]
-pub struct VariableRef(u32);
+pub struct VariableRef(pub u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Literal {
