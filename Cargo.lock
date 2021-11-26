@@ -18,6 +18,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "chisat"
+version = "0.1.0"
+dependencies = [
+ "quickcheck",
+ "quickcheck_macros",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -25,14 +33,6 @@ checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
 dependencies = [
  "log",
  "regex",
-]
-
-[[package]]
-name = "ersatz"
-version = "0.1.0"
-dependencies = [
- "quickcheck",
- "quickcheck_macros",
 ]
 
 [[package]]
