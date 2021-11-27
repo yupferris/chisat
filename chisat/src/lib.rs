@@ -1,6 +1,10 @@
 #[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
+
+pub mod solvers;
 
 use std::collections::HashMap;
 use std::convert::identity;
@@ -174,84 +178,9 @@ impl Interpretation {
     }
 }
 
-pub fn backtracking(formula: &Formula) -> (Option<Interpretation>, u32) {
-    fn go(formula: &Formula, interpretation: Interpretation, num_search_steps: &mut u32) -> Option<Interpretation> {
-        if formula.evaluate(&interpretation) {
-            return Some(interpretation);
-        }
-        if let Some(variable) = formula.first_unassigned_variable(&interpretation) {
-            for value in [false, true] {
-                *num_search_steps += 1;
-                let result = go(
-                    formula,
-                    interpretation.assign(variable, value),
-                    num_search_steps,
-                );
-                if result.is_some() {
-                    return result;
-                }
-            }
-        }
-        None
-    }
-    let mut num_search_steps = 0;
-    (go(formula, Interpretation::empty(), &mut num_search_steps), num_search_steps)
-}
-
-pub fn dpll(formula: &Formula) -> (Option<Interpretation>, u32) {
-    fn go(formula: &Formula, interpretation: Interpretation, num_search_steps: &mut u32) -> Option<Interpretation> {
-        if formula.clauses.is_empty() {
-            return Some(interpretation);
-        }
-
-        if formula.clauses.iter().any(|clause| clause.is_empty()) {
-            return None;
-        }
-
-        // Unit clause rule
-        if let Some(literal) = formula.first_unit_clause_literal() {
-            return go(
-                &formula.assign(literal.variable, literal.is_positive),
-                interpretation.assign(literal.variable, literal.is_positive),
-                num_search_steps,
-            );
-        }
-
-        // Pure literal rule
-        if let Some(literal) = formula.first_pure_literal() {
-            return go(
-                &formula.assign(literal.variable, literal.is_positive),
-                interpretation.assign(literal.variable, literal.is_positive),
-                num_search_steps,
-            );
-        }
-
-        // Splitting rule
-        if let Some(variable) = formula.first_unassigned_variable(&interpretation) {
-            for value in [false, true] {
-                *num_search_steps += 1;
-                let result = go(
-                    &formula.assign(variable, value),
-                    interpretation.assign(variable, value),
-                    num_search_steps,
-                );
-                if result.is_some() {
-                    return result;
-                }
-            }
-        }
-
-        None
-    }
-    let mut num_search_steps = 0;
-    (go(formula, Interpretation::empty(), &mut num_search_steps), num_search_steps)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    extern crate quickcheck;
 
     const ARBITRARY_NUM_VARIABLES: u32 = 8;
 
@@ -302,47 +231,5 @@ mod tests {
                 formula,
             }
         }
-    }
-
-    #[quickcheck]
-    fn backtracking_satisfying_interpretations_are_satisfying(instance: Instance) -> bool {
-        match backtracking(&instance.formula).0 {
-            Some(interpretation) => {
-                println!("Satisfying interpretation: {:?}", interpretation);
-                instance.formula.evaluate(&interpretation)
-            }
-            _ => true,
-        }
-    }
-
-    #[quickcheck]
-    fn dpll_satisfying_interpretations_are_satisfying(instance: Instance) -> bool {
-        match dpll(&instance.formula).0 {
-            Some(interpretation) => {
-                println!("Satisfying interpretation: {:?}", interpretation);
-                instance.formula.evaluate(&interpretation)
-            }
-            _ => true,
-        }
-    }
-
-    #[quickcheck]
-    fn backtracking_and_dpll_reach_the_same_conclusion(instance: Instance) -> bool {
-        let backtracking_result = backtracking(&instance.formula);
-        println!("backtracking result: {:?}", backtracking_result);
-        let dpll_result = dpll(&instance.formula);
-        println!("dpll result: {:?}", dpll_result);
-        let ret = backtracking_result.0.is_some() == dpll_result.0.is_some();
-        println!();
-        ret
-    }
-
-    #[quickcheck]
-    fn dpll_uses_the_same_or_fewer_search_steps_than_backtracking(instance: Instance) -> bool {
-        let backtracking_result = backtracking(&instance.formula);
-        println!("backtracking result: {:?}", backtracking_result);
-        let dpll_result = dpll(&instance.formula);
-        println!("dpll result: {:?}", dpll_result);
-        dpll_result.1 <= backtracking_result.1
     }
 }

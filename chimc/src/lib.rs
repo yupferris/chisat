@@ -7,6 +7,7 @@ mod tests {
     extern crate quickcheck;
 
     use chisat::*;
+    use chisat::solvers::*;
     use variant_count::*;
 
     use std::collections::HashMap;
