@@ -92,45 +92,45 @@ mod tests {
     }
 
     #[derive(Clone)]
-    struct Interpretation {
+    struct Assignment {
         pub values: HashMap<VariableRef, bool>,
     }
 
-    impl Interpretation {
-        fn assign(&self, variable: VariableRef, value: bool) -> Interpretation {
+    impl Assignment {
+        fn assign(&self, variable: VariableRef, value: bool) -> Assignment {
             let mut ret = self.clone();
             ret.values.insert(variable, value);
             ret
         }
 
-        fn empty() -> Interpretation {
-            Interpretation {
+        fn empty() -> Assignment {
+            Assignment {
                 values: HashMap::new(),
             }
         }
     }
 
     impl BooleanExpression {
-        fn evaluate(&self, interpretation: &Interpretation) -> bool {
+        fn evaluate(&self, assignment: &Assignment) -> bool {
             match self {
-                BooleanExpression::Conjuction(lhs, rhs) => lhs.evaluate(interpretation) & rhs.evaluate(interpretation),
-                BooleanExpression::Disjuction(lhs, rhs) => lhs.evaluate(interpretation) | rhs.evaluate(interpretation),
-                BooleanExpression::Equality(lhs, rhs) => lhs.evaluate(interpretation) == rhs.evaluate(interpretation),
-                BooleanExpression::Negation(expression) => !expression.evaluate(interpretation),
-                BooleanExpression::Variable(variable) => interpretation.values.get(&variable).cloned().unwrap_or(false),
+                BooleanExpression::Conjuction(lhs, rhs) => lhs.evaluate(assignment) & rhs.evaluate(assignment),
+                BooleanExpression::Disjuction(lhs, rhs) => lhs.evaluate(assignment) | rhs.evaluate(assignment),
+                BooleanExpression::Equality(lhs, rhs) => lhs.evaluate(assignment) == rhs.evaluate(assignment),
+                BooleanExpression::Negation(expression) => !expression.evaluate(assignment),
+                BooleanExpression::Variable(variable) => assignment.values.get(&variable).cloned().unwrap_or(false),
             }
         }
 
-        fn first_unassigned_variable(&self, interpretation: &Interpretation) -> Option<VariableRef> {
+        fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
             match self {
                 BooleanExpression::Conjuction(lhs, rhs) =>
-                    lhs.first_unassigned_variable(interpretation).or_else(|| rhs.first_unassigned_variable(interpretation)),
+                    lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
                 BooleanExpression::Disjuction(lhs, rhs) =>
-                    lhs.first_unassigned_variable(interpretation).or_else(|| rhs.first_unassigned_variable(interpretation)),
+                    lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
                 BooleanExpression::Equality(lhs, rhs) =>
-                    lhs.first_unassigned_variable(interpretation).or_else(|| rhs.first_unassigned_variable(interpretation)),
-                BooleanExpression::Negation(expression) => expression.first_unassigned_variable(interpretation),
-                &BooleanExpression::Variable(variable) => if !interpretation.values.contains_key(&variable) {
+                    lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
+                BooleanExpression::Negation(expression) => expression.first_unassigned_variable(assignment),
+                &BooleanExpression::Variable(variable) => if !assignment.values.contains_key(&variable) {
                     Some(variable)
                 } else {
                     None
@@ -139,15 +139,15 @@ mod tests {
         }
 
         fn is_satisfiable(&self) -> bool {
-            fn go(expression: &BooleanExpression, interpretation: Interpretation) -> bool {
-                if expression.evaluate(&interpretation) {
+            fn go(expression: &BooleanExpression, assignment: Assignment) -> bool {
+                if expression.evaluate(&assignment) {
                     return true;
                 }
-                if let Some(variable) = expression.first_unassigned_variable(&interpretation) {
+                if let Some(variable) = expression.first_unassigned_variable(&assignment) {
                     for value in [false, true] {
                         if go(
                             expression,
-                            interpretation.assign(variable, value),
+                            assignment.assign(variable, value),
                         ) {
                             return true;
                         }
@@ -156,7 +156,7 @@ mod tests {
                 return false;
             }
 
-            return go(self, Interpretation::empty())
+            return go(self, Assignment::empty())
         }
     }
 
@@ -441,10 +441,10 @@ mod tests {
         println!("result: {:?}", result);
 
         if let Some(result) = result.0 {
-            let interpretation = Interpretation {
+            let assignment = Assignment {
                 values: result.values.iter().map(|(variable, &value)| (VariableRef(variable.0), value)).collect(),
             };
-            assert!(expression.evaluate(&interpretation));
+            assert!(expression.evaluate(&assignment));
         } else {
             assert!(!expression.is_satisfiable());
         }
@@ -583,7 +583,7 @@ mod tests {
 
         let result = dpll(&instance.formula);
         println!("  result: {:?}", result);
-        if let Some(interpretation) = result.0 {
+        if let Some(assignment) = result.0 {
             panic!("Base case check failed");
             // TODO
         }
@@ -659,7 +659,7 @@ mod tests {
 
         let result = dpll(&instance.formula);
         println!("  result: {:?}", result);
-        if let Some(interpretation) = result.0 {
+        if let Some(assignment) = result.0 {
             println!("Induction check failed!");
 
             println!("From state:");
@@ -667,7 +667,7 @@ mod tests {
                 println!(
                     "  {} = {}",
                     system.variables[constraint.variable.0 as usize].name,
-                    interpretation.values[&chisat::VariableRef(constraint.variable.0)],
+                    assignment.values[&chisat::VariableRef(constraint.variable.0)],
                 );
             }
 
@@ -676,7 +676,7 @@ mod tests {
                 println!(
                     "  {}' = {}",
                     system.variables[constraint.variable.0 as usize].name,
-                    interpretation.values[&chisat::VariableRef(primed(constraint.variable).0)],
+                    assignment.values[&chisat::VariableRef(primed(constraint.variable).0)],
                 );
             }
 

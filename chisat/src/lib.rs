@@ -28,8 +28,8 @@ pub struct Literal {
 }
 
 impl Literal {
-    fn evaluate(&self, interpretation: &Interpretation) -> bool {
-        interpretation.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
+    fn evaluate(&self, assignment: &Assignment) -> bool {
+        assignment.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
     }
 }
 
@@ -50,8 +50,8 @@ pub struct Clause {
 }
 
 impl Clause {
-    fn evaluate(&self, interpretation: &Interpretation) -> bool {
-        self.literals.iter().map(|literal| literal.evaluate(interpretation)).reduce(|a, b| a || b).unwrap_or(false)
+    fn evaluate(&self, assignment: &Assignment) -> bool {
+        self.literals.iter().map(|literal| literal.evaluate(assignment)).reduce(|a, b| a || b).unwrap_or(false)
     }
 
     fn is_empty(&self) -> bool {
@@ -85,8 +85,8 @@ impl Formula {
         }
     }
 
-    pub fn evaluate(&self, interpretation: &Interpretation) -> bool {
-        self.clauses.iter().map(|clause| clause.evaluate(interpretation)).reduce(|a, b| a && b).unwrap_or(true)
+    pub fn evaluate(&self, assignment: &Assignment) -> bool {
+        self.clauses.iter().map(|clause| clause.evaluate(assignment)).reduce(|a, b| a && b).unwrap_or(true)
     }
 
     fn first_pure_literal(&self) -> Option<Literal> {
@@ -109,10 +109,10 @@ impl Formula {
         variable_map.values().copied().find_map(identity)
     }
 
-    fn first_unassigned_variable(&self, interpretation: &Interpretation) -> Option<VariableRef> {
+    fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
         self.clauses.iter().find_map(|clause| clause.literals.iter().find_map(|literal| {
             let variable = literal.variable;
-            if !interpretation.values.contains_key(&variable) {
+            if !assignment.values.contains_key(&variable) {
                 Some(variable)
             } else {
                 None
@@ -160,19 +160,19 @@ impl fmt::Debug for Instance {
 }
 
 #[derive(Clone, Debug)]
-pub struct Interpretation {
+pub struct Assignment {
     pub values: HashMap<VariableRef, bool>,
 }
 
-impl Interpretation {
-    fn assign(&self, variable: VariableRef, value: bool) -> Interpretation {
+impl Assignment {
+    fn assign(&self, variable: VariableRef, value: bool) -> Assignment {
         let mut ret = self.clone();
         ret.values.insert(variable, value);
         ret
     }
 
-    fn empty() -> Interpretation {
-        Interpretation {
+    fn empty() -> Assignment {
+        Assignment {
             values: HashMap::new(),
         }
     }
