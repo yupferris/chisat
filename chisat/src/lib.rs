@@ -75,14 +75,12 @@ impl Clause {
 
 impl fmt::Debug for Clause {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "/\\ (")?;
         for (i, literal) in self.literals.iter().enumerate() {
             if i != 0 {
-                write!(f, " \\/ ")?;
+                write!(f, " ")?;
             }
             write!(f, "{:?}", literal)?;
         }
-        write!(f, ")")?;
 
         Ok(())
     }
