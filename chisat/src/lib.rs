@@ -14,9 +14,9 @@ use std::ops::Neg;
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[repr(transparent)]
-pub struct VariableRef(pub u32);
+pub struct Variable(pub u32);
 
-impl fmt::Debug for VariableRef {
+impl fmt::Debug for Variable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)?;
 
@@ -26,7 +26,7 @@ impl fmt::Debug for VariableRef {
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Literal {
-    pub variable: VariableRef,
+    pub variable: Variable,
     pub is_positive: bool,
 }
 
@@ -94,7 +94,7 @@ pub struct Formula {
 }
 
 impl Formula {
-    fn assign(&self, variable: VariableRef, value: bool) -> Formula {
+    fn assign(&self, variable: Variable, value: bool) -> Formula {
         Formula {
             clauses: self.clauses.iter().filter_map(|clause| {
                 if clause.literals.contains(&Literal {
@@ -119,7 +119,7 @@ impl Formula {
     }
 
     fn first_pure_literal(&self) -> Option<Literal> {
-        let mut variable_map: HashMap<VariableRef, Option<Literal>> = HashMap::new();
+        let mut variable_map: HashMap<Variable, Option<Literal>> = HashMap::new();
         for clause in &self.clauses {
             for literal in &clause.literals {
                 let variable = literal.variable;
@@ -138,7 +138,7 @@ impl Formula {
         variable_map.values().copied().find_map(identity)
     }
 
-    fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
+    fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<Variable> {
         self.clauses.iter().find_map(|clause| clause.literals.iter().find_map(|literal| {
             let variable = literal.variable;
             if !assignment.values.contains_key(&variable) {
@@ -173,11 +173,11 @@ impl fmt::Debug for Formula {
 
 #[derive(Clone, Debug)]
 pub struct Assignment {
-    pub values: HashMap<VariableRef, bool>,
+    pub values: HashMap<Variable, bool>,
 }
 
 impl Assignment {
-    fn assign(&self, variable: VariableRef, value: bool) -> Assignment {
+    fn assign(&self, variable: Variable, value: bool) -> Assignment {
         let mut ret = self.clone();
         ret.values.insert(variable, value);
         ret
@@ -196,16 +196,16 @@ mod tests {
 
     const ARBITRARY_NUM_VARIABLES: u32 = 8;
 
-    impl quickcheck::Arbitrary for VariableRef {
+    impl quickcheck::Arbitrary for Variable {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)
+            Variable(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)
         }
     }
 
     impl quickcheck::Arbitrary for Literal {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             Literal {
-                variable: VariableRef::arbitrary(g),
+                variable: Variable::arbitrary(g),
                 is_positive: bool::arbitrary(g),
             }
         }
