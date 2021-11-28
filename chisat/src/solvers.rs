@@ -78,32 +78,32 @@ mod tests {
     use super::*;
 
     #[quickcheck]
-    fn backtracking_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
-        match backtracking(&instance.formula).0 {
+    fn backtracking_satisfying_assignments_are_satisfying(formula: Formula) -> bool {
+        match backtracking(&formula).0 {
             Some(assignment) => {
                 println!("Satisfying assignment: {:?}", assignment);
-                instance.formula.evaluate(&assignment)
+                formula.evaluate(&assignment)
             }
             _ => true,
         }
     }
 
     #[quickcheck]
-    fn dpll_satisfying_assignments_are_satisfying(instance: Instance) -> bool {
-        match dpll(&instance.formula).0 {
+    fn dpll_satisfying_assignments_are_satisfying(formula: Formula) -> bool {
+        match dpll(&formula).0 {
             Some(assignment) => {
                 println!("Satisfying assignment: {:?}", assignment);
-                instance.formula.evaluate(&assignment)
+                formula.evaluate(&assignment)
             }
             _ => true,
         }
     }
 
     #[quickcheck]
-    fn backtracking_and_dpll_reach_the_same_conclusion(instance: Instance) -> bool {
-        let backtracking_result = backtracking(&instance.formula);
+    fn backtracking_and_dpll_reach_the_same_conclusion(formula: Formula) -> bool {
+        let backtracking_result = backtracking(&formula);
         println!("backtracking result: {:?}", backtracking_result);
-        let dpll_result = dpll(&instance.formula);
+        let dpll_result = dpll(&formula);
         println!("dpll result: {:?}", dpll_result);
         let ret = backtracking_result.0.is_some() == dpll_result.0.is_some();
         println!();
@@ -111,10 +111,10 @@ mod tests {
     }
 
     #[quickcheck]
-    fn dpll_uses_the_same_or_fewer_search_steps_than_backtracking(instance: Instance) -> bool {
-        let backtracking_result = backtracking(&instance.formula);
+    fn dpll_uses_the_same_or_fewer_search_steps_than_backtracking(formula: Formula) -> bool {
+        let backtracking_result = backtracking(&formula);
         println!("backtracking result: {:?}", backtracking_result);
-        let dpll_result = dpll(&instance.formula);
+        let dpll_result = dpll(&formula);
         println!("dpll result: {:?}", dpll_result);
         dpll_result.1 <= backtracking_result.1
     }

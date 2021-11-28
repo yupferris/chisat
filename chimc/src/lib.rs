@@ -429,15 +429,9 @@ mod tests {
             name: format!("v{}", i),
         }).collect();
         let formula = tseitin_transformation(&expression, &mut variables);
-        let instance = Instance {
-            variables: variables.into_iter().map(|variable| chisat::Variable {
-                name: variable.name.clone(),
-            }).collect(),
-            formula,
-        };
-        println!("instance: {:?}", instance);
+        println!("formula: {:?}", formula);
 
-        let result = dpll(&instance.formula);
+        let result = dpll(&formula);
         println!("result: {:?}", result);
 
         if let Some(result) = result.0 {
@@ -573,15 +567,9 @@ mod tests {
             })))
         }
         let formula = tseitin_transformation(&expression.unwrap(), &mut variables);
-        let instance = Instance {
-            variables: variables.into_iter().map(|v| chisat::Variable {
-                name: v.name.clone(),
-            }).collect(),
-            formula,
-        };
-        //println!("  instance: {:?}", instance);
+        //println!("  formula: {:?}", formula);
 
-        let result = dpll(&instance.formula);
+        let result = dpll(&formula);
         println!("  result: {:?}", result);
         if let Some(assignment) = result.0 {
             panic!("Base case check failed");
@@ -649,15 +637,9 @@ mod tests {
             }
         }
         let formula = tseitin_transformation(&expression.unwrap(), &mut variables);
-        let instance = Instance {
-            variables: variables.into_iter().map(|v| chisat::Variable {
-                name: v.name.clone(),
-            }).collect(),
-            formula,
-        };
-        //println!("  instance: {:?}", instance);
+        //println!("  formula: {:?}", formula);
 
-        let result = dpll(&instance.formula);
+        let result = dpll(&formula);
         println!("  result: {:?}", result);
         if let Some(assignment) = result.0 {
             println!("Induction check failed!");

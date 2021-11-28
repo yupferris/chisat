@@ -12,16 +12,19 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Neg;
 
-#[derive(Clone, Debug)]
-pub struct Variable {
-    pub name: String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[repr(transparent)]
 pub struct VariableRef(pub u32);
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+impl fmt::Debug for VariableRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Literal {
     pub variable: VariableRef,
     pub is_positive: bool,
@@ -30,6 +33,17 @@ pub struct Literal {
 impl Literal {
     fn evaluate(&self, assignment: &Assignment) -> bool {
         assignment.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
+    }
+}
+
+impl fmt::Debug for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        if !self.is_positive {
+            write!(f, "-")?;
+        }
+        write!(f, "{:?}", self.variable)?;
+
+        Ok(())
     }
 }
 
@@ -44,7 +58,7 @@ impl Neg for Literal {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Clause {
     pub literals: Vec<Literal>,
 }
@@ -56,6 +70,21 @@ impl Clause {
 
     fn is_empty(&self) -> bool {
         self.literals.is_empty()
+    }
+}
+
+impl fmt::Debug for Clause {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "/\\ (")?;
+        for (i, literal) in self.literals.iter().enumerate() {
+            if i != 0 {
+                write!(f, " \\/ ")?;
+            }
+            write!(f, "{:?}", literal)?;
+        }
+        write!(f, ")")?;
+
+        Ok(())
     }
 }
 
@@ -131,28 +160,11 @@ impl Formula {
     }
 }
 
-#[derive(Clone)]
-pub struct Instance {
-    pub variables: Vec<Variable>,
-    pub formula: Formula,
-}
-
-impl fmt::Debug for Instance {
+impl fmt::Debug for Formula {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         writeln!(f)?;
-        for clause in &self.formula.clauses {
-            write!(f, "/\\ (")?;
-            for (i, literal) in clause.literals.iter().enumerate() {
-                if i != 0 {
-                    write!(f, " \\/ ")?;
-                }
-                let variable_name = &self.variables[literal.variable.0 as usize].name;
-                if !literal.is_positive {
-                    write!(f, "-")?;
-                }
-                write!(f, "{}", variable_name)?;
-            }
-            writeln!(f, ")")?;
+        for clause in &self.clauses {
+            writeln!(f, "{:?}", clause)?;
         }
 
         Ok(())
@@ -202,8 +214,8 @@ mod tests {
     impl quickcheck::Arbitrary for Clause {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             let max_num_literals = 4;
-            // TODO: This excludes 0, which typically results in more interesting instances,
-            //  since any empty clause renders the entire instance unsatisfiable. However,
+            // TODO: This excludes 0, which typically results in more interesting formulas,
+            //  since any empty clause renders the entire formula unsatisfiable. However,
             //  this may be an important case to check, so we may want to come up with a way
             //  to conditionally include empty clauses with low probability of occurrence.
             let num_literals = (u32::arbitrary(g) % max_num_literals) + 1;
@@ -213,22 +225,13 @@ mod tests {
         }
     }
 
-    impl quickcheck::Arbitrary for Instance {
+    impl quickcheck::Arbitrary for Formula {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            let variables = (0..ARBITRARY_NUM_VARIABLES).map(|i| Variable {
-                name: format!("v{}", i),
-            }).collect();
-
             // TODO: Find a good way to respect size that doesn't end up generating too many
-            //  unsatisfiable instances
+            //  unsatisfiable formulas
             let num_clauses = 4;//g.size();
-            let formula = Formula {
+            Formula {
                 clauses: (0..num_clauses).map(|_| Clause::arbitrary(g)).collect(),
-            };
-
-            Instance {
-                variables,
-                formula,
             }
         }
     }
