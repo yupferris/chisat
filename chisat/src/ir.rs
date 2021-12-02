@@ -135,7 +135,6 @@ impl<'a> Drop for ClauseBuilder<'a> {
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-#[repr(transparent)]
 pub struct Variable(u32);
 
 impl fmt::Debug for Variable {
