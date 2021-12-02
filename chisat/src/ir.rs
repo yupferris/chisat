@@ -6,13 +6,13 @@ use std::hash::Hash;
 // TODO: Rename?
 // TODO: Remove Clone
 #[derive(Clone)]
-pub struct Context {
+pub struct Formula {
     pub(crate) clauses: Vec<Clause>,
 }
 
-impl Context {
-    pub fn new() -> Context {
-        Context {
+impl Formula {
+    pub fn new() -> Formula {
+        Formula {
             clauses: Vec::new(),
         }
     }
@@ -26,8 +26,8 @@ impl Context {
     }
 
     // TODO: This should mutate, not clone
-    pub(crate) fn assign(&self, variable: Variable, value: bool) -> Context {
-        Context {
+    pub(crate) fn assign(&self, variable: Variable, value: bool) -> Formula {
+        Formula {
             clauses: self.clauses.iter().filter_map(|clause| {
                 if clause.literals.contains(&Literal {
                     variable,
@@ -93,7 +93,7 @@ impl Context {
 }
 
 // TODO: Does this still make sense?
-impl fmt::Debug for Context {
+impl fmt::Debug for Formula {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         writeln!(f)?;
         for clause in &self.clauses {
@@ -106,7 +106,7 @@ impl fmt::Debug for Context {
 
 // TODO: Is this a sensible interface?
 pub struct ClauseBuilder<'a> {
-    context: &'a mut Context,
+    context: &'a mut Formula,
     clause: Option<Clause>,
 }
 
@@ -223,12 +223,12 @@ mod tests {
     const ARBITRARY_NUM_VARIABLES: u32 = 8;
 
     // TODO: Does this still make sense?
-    impl quickcheck::Arbitrary for Context {
+    impl quickcheck::Arbitrary for Formula {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             // TODO: Find a good way to respect size that doesn't end up generating too many
             //  unsatisfiable formulas
             let num_clauses = 4;//g.size();
-            let mut ret = Context::new();
+            let mut ret = Formula::new();
             for _ in 0..num_clauses {
                 let mut clause = ret.clause();
                 let max_num_literals = 4;
