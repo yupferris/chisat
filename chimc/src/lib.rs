@@ -494,9 +494,9 @@ mod tests {
         }
 
         let properties = vec![
-            //Property::Constraint(Constraint::ExactlyOne(vec![a, b, c])),
+            Property::Constraint(Constraint::ExactlyOne(vec![a, b, c])),
             // Bogus property to see that induction fails correctly
-            Property::Constraint(Constraint::EqualityConst(c, false)),
+            //Property::Constraint(Constraint::EqualityConst(c, false)),
         ];
         println!("  properties:");
         for property in &properties {
