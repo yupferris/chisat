@@ -137,6 +137,12 @@ impl<'a> Drop for ClauseBuilder<'a> {
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub struct Variable(u32);
 
+impl Variable {
+    pub fn from_index(index: u32) -> Variable {
+        Variable(index)
+    }
+}
+
 impl fmt::Debug for Variable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)?;
@@ -219,8 +225,6 @@ impl Assignment {
 mod tests {
     use super::*;
 
-    const ARBITRARY_NUM_VARIABLES: u32 = 8;
-
     // TODO: Does this still make sense?
     impl quickcheck::Arbitrary for Formula {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
@@ -238,18 +242,12 @@ mod tests {
                 let num_literals = (u32::arbitrary(g) % max_num_literals) + 1;
                 for _ in 0..num_literals {
                     clause.literal(
-                        Variable::arbitrary(g),
+                        Variable::from_index(u32::arbitrary(g) % 8),
                         bool::arbitrary(g),
                     );
                 }
             }
             ret
-        }
-    }
-
-    impl quickcheck::Arbitrary for Variable {
-        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            Variable(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)
         }
     }
 }
