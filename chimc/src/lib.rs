@@ -161,9 +161,7 @@ mod tests {
     }
 
     fn tseitin_transformation(expression: &BooleanExpression, variables: &mut Vec<Variable>) -> Formula {
-        let mut ret = Formula {
-            clauses: Vec::new(),
-        };
+        let mut ret = Formula::new();
         fn go(
             expression: &BooleanExpression,
             is_positive: bool,
@@ -178,47 +176,17 @@ mod tests {
                     variables.push(Variable {
                         name: format!("_t{}", temp_index),
                     });
-                    let temp = chisat::Variable(temp_index);
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: rhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive: !is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: rhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive: !is_positive,
-                            },
-                        ],
-                    });
+                    let temp = chisat::Variable::from_index(temp_index);
+                    formula.clause()
+                        .literal(lhs, false)
+                        .literal(rhs, false)
+                        .literal(temp, is_positive);
+                    formula.clause()
+                        .literal(lhs, true)
+                        .literal(temp, !is_positive);
+                    formula.clause()
+                        .literal(rhs, true)
+                        .literal(temp, !is_positive);
                     temp
                 }
                 BooleanExpression::Disjuction(lhs, rhs) => {
@@ -228,47 +196,17 @@ mod tests {
                     variables.push(Variable {
                         name: format!("_t{}", temp_index),
                     });
-                    let temp = chisat::Variable(temp_index);
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: rhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive: !is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: rhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive,
-                            },
-                        ],
-                    });
+                    let temp = chisat::Variable::from_index(temp_index);
+                    formula.clause()
+                        .literal(lhs, true)
+                        .literal(rhs, true)
+                        .literal(temp, !is_positive);
+                    formula.clause()
+                        .literal(lhs, false)
+                        .literal(temp, is_positive);
+                    formula.clause()
+                        .literal(rhs, false)
+                        .literal(temp, is_positive);
                     temp
                 }
                 BooleanExpression::Equality(lhs, rhs) => {
@@ -278,78 +216,30 @@ mod tests {
                     variables.push(Variable {
                         name: format!("_t{}", temp_index),
                     });
-                    let temp = chisat::Variable(temp_index);
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: rhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: rhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: rhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive: !is_positive,
-                            },
-                        ],
-                    });
-                    formula.clauses.push(Clause {
-                        literals: vec![
-                            Literal {
-                                variable: lhs,
-                                is_positive: false,
-                            },
-                            Literal {
-                                variable: rhs,
-                                is_positive: true,
-                            },
-                            Literal {
-                                variable: temp,
-                                is_positive: !is_positive,
-                            },
-                        ],
-                    });
+                    let temp = chisat::Variable::from_index(temp_index);
+                    formula.clause()
+                        .literal(lhs, false)
+                        .literal(rhs, false)
+                        .literal(temp, is_positive);
+                    formula.clause()
+                        .literal(lhs, true)
+                        .literal(rhs, true)
+                        .literal(temp, is_positive);
+                    formula.clause()
+                        .literal(lhs, true)
+                        .literal(rhs, false)
+                        .literal(temp, !is_positive);
+                    formula.clause()
+                        .literal(lhs, false)
+                        .literal(rhs, true)
+                        .literal(temp, !is_positive);
                     temp
                 }
                 BooleanExpression::Negation(expression) => {
                     go(expression, !is_positive, formula, variables)
                 }
                 BooleanExpression::Variable(variable) => {
-                    let variable = chisat::Variable(variable.0);
+                    let variable = chisat::Variable::from_index(variable.0);
                     if is_positive {
                         variable
                     } else {
@@ -357,45 +247,20 @@ mod tests {
                         variables.push(Variable {
                             name: format!("_t{}", temp_index),
                         });
-                        let temp = chisat::Variable(temp_index);
-                        formula.clauses.push(Clause {
-                            literals: vec![
-                                Literal {
-                                    variable,
-                                    is_positive: false,
-                                },
-                                Literal {
-                                    variable: temp,
-                                    is_positive: false,
-                                },
-                            ],
-                        });
-                        formula.clauses.push(Clause {
-                            literals: vec![
-                                Literal {
-                                    variable,
-                                    is_positive: true,
-                                },
-                                Literal {
-                                    variable: temp,
-                                    is_positive: true,
-                                },
-                            ],
-                        });
+                        let temp = chisat::Variable::from_index(temp_index);
+                        formula.clause()
+                            .literal(variable, false)
+                            .literal(temp, false);
+                        formula.clause()
+                            .literal(variable, true)
+                            .literal(temp, true);
                         temp
                     }
                 }
             }
         }
         let variable = go(expression, true, &mut ret, variables);
-        ret.clauses.push(Clause {
-            literals: vec![
-                Literal {
-                    variable,
-                    is_positive: true,
-                },
-            ],
-        });
+        ret.clause().literal(variable, true);
         ret
     }
 
@@ -436,7 +301,7 @@ mod tests {
 
         if let Some(result) = result.0 {
             let assignment = Assignment {
-                values: result.values.iter().map(|(variable, &value)| (VariableRef(variable.0), value)).collect(),
+                values: result.values.iter().map(|(variable, &value)| (VariableRef(variable.index()), value)).collect(),
             };
             assert!(expression.evaluate(&assignment));
         } else {
@@ -649,7 +514,7 @@ mod tests {
                 println!(
                     "  {} = {}",
                     system.variables[constraint.variable.0 as usize].name,
-                    assignment.values[&chisat::Variable(constraint.variable.0)],
+                    assignment.values[&chisat::Variable::from_index(constraint.variable.0)],
                 );
             }
 
@@ -658,7 +523,7 @@ mod tests {
                 println!(
                     "  {}' = {}",
                     system.variables[constraint.variable.0 as usize].name,
-                    assignment.values[&chisat::Variable(primed(constraint.variable).0)],
+                    assignment.values[&chisat::Variable::from_index(primed(constraint.variable).0)],
                 );
             }
 
