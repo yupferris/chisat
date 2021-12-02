@@ -142,6 +142,10 @@ impl Variable {
     pub fn from_index(index: u32) -> Variable {
         Variable(index)
     }
+
+    pub fn index(&self) -> u32 {
+        self.0
+    }
 }
 
 impl fmt::Debug for Variable {
