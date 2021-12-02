@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::convert::identity;
 use std::fmt;
 use std::hash::Hash;
-use std::ops::Neg;
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[repr(transparent)]
@@ -36,17 +35,6 @@ impl fmt::Debug for Literal {
         write!(f, "{:?}", self.variable)?;
 
         Ok(())
-    }
-}
-
-impl Neg for Literal {
-    type Output = Literal;
-
-    fn neg(self) -> Self::Output {
-        Literal {
-            is_positive: !self.is_positive,
-            ..self
-        }
     }
 }
 
