@@ -6,7 +6,7 @@ use std::ops::Neg;
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 #[repr(transparent)]
-pub struct Variable(pub u32);
+pub struct Variable(u32);
 
 impl fmt::Debug for Variable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
@@ -17,9 +17,9 @@ impl fmt::Debug for Variable {
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-pub struct Literal {
-    pub variable: Variable,
-    pub is_positive: bool,
+pub(crate) struct Literal {
+    pub(crate) variable: Variable,
+    pub(crate) is_positive: bool,
 }
 
 impl Literal {
@@ -51,8 +51,8 @@ impl Neg for Literal {
 }
 
 #[derive(Clone)]
-pub struct Clause {
-    pub literals: Vec<Literal>,
+pub(crate) struct Clause {
+    pub(crate) literals: Vec<Literal>,
 }
 
 impl Clause {
@@ -80,7 +80,7 @@ impl fmt::Debug for Clause {
 
 #[derive(Clone)]
 pub struct Formula {
-    pub clauses: Vec<Clause>,
+    pub(crate) clauses: Vec<Clause>,
 }
 
 impl Formula {
