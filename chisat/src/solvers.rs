@@ -1,4 +1,4 @@
-use crate::*;
+use crate::ir::*;
 
 pub fn backtracking(formula: &Formula) -> (Option<Assignment>, u32) {
     fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
