@@ -111,7 +111,7 @@ pub struct ClauseBuilder<'a> {
 }
 
 impl<'a> ClauseBuilder<'a> {
-    pub fn literal(&mut self, variable: Variable, is_positive: bool) {
+    pub fn literal<'b>(&'b mut self, variable: Variable, is_positive: bool) -> &'b mut ClauseBuilder<'a> {
         let literal = Literal {
             variable,
             is_positive,
@@ -123,6 +123,7 @@ impl<'a> ClauseBuilder<'a> {
                 literals: vec![literal],
             });
         }
+        self
     }
 }
 
