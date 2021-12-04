@@ -3,4 +3,5 @@
 members = [
     "chimc",
     "chisat",
+    "chisat-cli",
 ]
