@@ -29,6 +29,7 @@ fn main() -> io::Result<()> {
                 }
                 print!("{}", variable.index() as i32 + 1);
             }
+            println!();
         }
         None => {
             println!("s UNSATISFIABLE");
