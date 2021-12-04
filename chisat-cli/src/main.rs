@@ -3,6 +3,7 @@ use chisat::*;
 use std::env;
 use std::fs::File;
 use std::io;
+use std::time::Instant;
 
 fn main() -> io::Result<()> {
     let cnf_file_name = env::args().skip(1).next().expect("Missing CNF file name arg");
@@ -14,7 +15,11 @@ fn main() -> io::Result<()> {
     println!("c parsing successful");
 
     println!("c solving");
+    let start_time = Instant::now();
     let result = solvers::dpll(&formula);
+    let elapsed_time = start_time.elapsed();
+    let elapsed_time_s = (elapsed_time.as_secs() as f64) + (elapsed_time.subsec_nanos() as f64) / 1000000000.0;
+    println!("c elapsed time: {:.*}s", 2, elapsed_time_s);
     println!("c solving successful");
     println!("c {} search steps", result.1);
 
