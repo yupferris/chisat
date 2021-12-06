@@ -244,106 +244,113 @@ where
 mod tests {
     use super::*;
 
+    use crate::dimacs_cnf::*;
+
+    #[test]
+    fn parse_simple_round_trip() -> io::Result<()> {
+        let simple = br#"p cnf 3 2
+1 2 -3 0
+-2 3 0
+"#;
+
+        let mut formula = Formula::new();
+        parse(&mut formula, &simple[..])?;
+
+        let mut serialized = Vec::new();
+        serialize(&formula, &mut serialized)?;
+
+        assert_eq!(simple, &serialized[..]);
+
+        Ok(())
+    }
+
     #[quickcheck]
-    fn try_parse_i32(x: i32) -> io::Result<()> {
-        assert_eq!(try_parse_i32_str(&format!("{}", x))?, Some(x));
+    fn accept_i32_any(x: i32) -> io::Result<()> {
+        assert_eq!(accept_i32_str(&format!("{}", x))?, Some(x));
 
         Ok(())
     }
 
     #[test]
-    fn try_parse_i32_basic() -> io::Result<()> {
-        assert_eq!(try_parse_i32_str("")?, None);
-        assert_eq!(try_parse_i32_str(" ")?, None);
-        assert_eq!(try_parse_i32_str("a")?, None);
+    fn accept_i32_basic() -> io::Result<()> {
+        assert_eq!(accept_i32_str("")?, None);
+        assert_eq!(accept_i32_str(" ")?, None);
+        assert_eq!(accept_i32_str("a")?, None);
 
-        assert_eq!(try_parse_i32_str("0")?, Some(0));
-        assert_eq!(try_parse_i32_str("1")?, Some(1));
-        assert_eq!(try_parse_i32_str("9")?, Some(9));
-        assert_eq!(try_parse_i32_str("127")?, Some(127));
-        assert_eq!(try_parse_i32_str("128")?, Some(128));
-        assert_eq!(try_parse_i32_str("255")?, Some(255));
-        assert_eq!(try_parse_i32_str("256")?, Some(256));
-        assert_eq!(try_parse_i32_str("1337")?, Some(1337));
+        assert_eq!(accept_i32_str("0")?, Some(0));
+        assert_eq!(accept_i32_str("1")?, Some(1));
+        assert_eq!(accept_i32_str("9")?, Some(9));
+        assert_eq!(accept_i32_str("127")?, Some(127));
+        assert_eq!(accept_i32_str("128")?, Some(128));
+        assert_eq!(accept_i32_str("255")?, Some(255));
+        assert_eq!(accept_i32_str("256")?, Some(256));
+        assert_eq!(accept_i32_str("1337")?, Some(1337));
 
-        assert_eq!(try_parse_i32_str("-0")?, Some(0));
-        assert_eq!(try_parse_i32_str("-1")?, Some(-1));
-        assert_eq!(try_parse_i32_str("-9")?, Some(-9));
-        assert_eq!(try_parse_i32_str("-1337")?, Some(-1337));
+        assert_eq!(accept_i32_str("-0")?, Some(0));
+        assert_eq!(accept_i32_str("-1")?, Some(-1));
+        assert_eq!(accept_i32_str("-9")?, Some(-9));
+        assert_eq!(accept_i32_str("-1337")?, Some(-1337));
 
-        assert_eq!(try_parse_i32_str("1337 and some other stuff")?, Some(1337));
-        assert_eq!(try_parse_i32_str("-1337 and some other stuff")?, Some(-1337));
+        assert_eq!(accept_i32_str("1337 and some other stuff")?, Some(1337));
+        assert_eq!(accept_i32_str("-1337 and some other stuff")?, Some(-1337));
 
-        assert_eq!(try_parse_i32_str(&format!("{}", i32::MAX))?, Some(i32::MAX));
-        assert_eq!(try_parse_i32_str(&format!("{}", i32::MIN))?, Some(i32::MIN));
+        assert_eq!(accept_i32_str(&format!("{}", i32::MAX))?, Some(i32::MAX));
+        assert_eq!(accept_i32_str(&format!("{}", i32::MIN))?, Some(i32::MIN));
 
         assert_eq!(
-            try_parse_i32_str(&format!("{}", i32::MAX as i64 + 1)).unwrap_err().to_string(),
+            accept_i32_str(&format!("{}", i32::MAX as i64 + 1)).unwrap_err().to_string(),
             "Signed integer literal does not fit in 32 bits",
         );
         assert_eq!(
-            try_parse_i32_str(&format!("{}", i32::MIN as i64 - 1)).unwrap_err().to_string(),
+            accept_i32_str(&format!("{}", i32::MIN as i64 - 1)).unwrap_err().to_string(),
             "Signed integer literal does not fit in 32 bits",
         );
 
         Ok(())
     }
 
-    fn try_parse_i32_str(s: &str) -> io::Result<Option<i32>> {
+    fn accept_i32_str(s: &str) -> io::Result<Option<i32>> {
         let mut p = s.bytes().map(|b| Ok(b)).transposing_peekable();
         accept_i32(&mut p)
     }
 
     #[quickcheck]
-    fn try_parse_u32(x: u32) -> io::Result<()> {
-        assert_eq!(try_parse_u32_str(&format!("{}", x))?, Some(x));
+    fn accept_u32_any(x: u32) -> io::Result<()> {
+        assert_eq!(accept_u32_str(&format!("{}", x))?, Some(x));
 
         Ok(())
     }
 
     #[test]
-    fn try_parse_u32_basic() -> io::Result<()> {
-        assert_eq!(try_parse_u32_str("")?, None);
-        assert_eq!(try_parse_u32_str(" ")?, None);
-        assert_eq!(try_parse_u32_str("a")?, None);
+    fn accept_u32_basic() -> io::Result<()> {
+        assert_eq!(accept_u32_str("")?, None);
+        assert_eq!(accept_u32_str(" ")?, None);
+        assert_eq!(accept_u32_str("a")?, None);
 
-        assert_eq!(try_parse_u32_str("0")?, Some(0));
-        assert_eq!(try_parse_u32_str("1")?, Some(1));
-        assert_eq!(try_parse_u32_str("9")?, Some(9));
-        assert_eq!(try_parse_u32_str("127")?, Some(127));
-        assert_eq!(try_parse_u32_str("128")?, Some(128));
-        assert_eq!(try_parse_u32_str("255")?, Some(255));
-        assert_eq!(try_parse_u32_str("256")?, Some(256));
-        assert_eq!(try_parse_u32_str("1337")?, Some(1337));
+        assert_eq!(accept_u32_str("0")?, Some(0));
+        assert_eq!(accept_u32_str("1")?, Some(1));
+        assert_eq!(accept_u32_str("9")?, Some(9));
+        assert_eq!(accept_u32_str("127")?, Some(127));
+        assert_eq!(accept_u32_str("128")?, Some(128));
+        assert_eq!(accept_u32_str("255")?, Some(255));
+        assert_eq!(accept_u32_str("256")?, Some(256));
+        assert_eq!(accept_u32_str("1337")?, Some(1337));
 
-        assert_eq!(try_parse_u32_str("1337 and some other stuff")?, Some(1337));
+        assert_eq!(accept_u32_str("1337 and some other stuff")?, Some(1337));
 
-        assert_eq!(try_parse_u32_str(&format!("{}", u32::MAX))?, Some(u32::MAX));
-        assert_eq!(try_parse_u32_str(&format!("{}", u32::MIN))?, Some(u32::MIN));
+        assert_eq!(accept_u32_str(&format!("{}", u32::MAX))?, Some(u32::MAX));
+        assert_eq!(accept_u32_str(&format!("{}", u32::MIN))?, Some(u32::MIN));
 
         assert_eq!(
-            try_parse_u32_str(&format!("{}", u32::MAX as i64 + 1)).unwrap_err().to_string(),
+            accept_u32_str(&format!("{}", u32::MAX as i64 + 1)).unwrap_err().to_string(),
             "Unsigned integer literal does not fit in 32 bits",
         );
 
         Ok(())
     }
 
-    fn try_parse_u32_str(s: &str) -> io::Result<Option<u32>> {
+    fn accept_u32_str(s: &str) -> io::Result<Option<u32>> {
         let mut p = s.bytes().map(|b| Ok(b)).transposing_peekable();
         accept_u32(&mut p)
-    }
-
-    #[test]
-    fn parse_simple() -> io::Result<()> {
-        let simple = br#"p cnf 3 2
-1 2 -3 0
--2 3 0"#;
-
-        let mut formula = Formula::new();
-        parse(&mut formula, &simple[..])?;
-
-        // TODO: Actually validate parsed result!
-        todo!()
     }
 }
