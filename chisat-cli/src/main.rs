@@ -22,8 +22,8 @@ fn main() -> io::Result<()> {
         let result = solvers::dpll(&formula);
         let elapsed_time = start_time.elapsed();
         let elapsed_time_s = (elapsed_time.as_secs() as f64) + (elapsed_time.subsec_nanos() as f64) / 1000000000.0;
-        println!("c elapsed time: {:.*}s", 2, elapsed_time_s);
         println!("c solving successful");
+        println!("c elapsed time: {:.*}s", 2, elapsed_time_s);
         println!("c {} search steps", result.1);
 
         match result.0 {
