@@ -11,7 +11,7 @@ fn main() -> io::Result<()> {
     let mut formula = Formula::new();
 
     println!("c parsing file {}", cnf_file_name);
-    dimacs::parse(&mut formula, File::open(cnf_file_name)?)?;
+    dimacs_cnf::parse(&mut formula, File::open(cnf_file_name)?)?;
     println!("c parsing successful");
 
     println!("c solving");
