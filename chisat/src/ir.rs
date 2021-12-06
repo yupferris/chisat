@@ -90,6 +90,20 @@ impl Formula {
 
         None
     }
+
+    pub fn num_clauses(&self) -> u32 {
+        self.clauses.len() as _
+    }
+
+    pub fn num_variables(&self) -> u32 {
+        let mut max_variable_index = None;
+        for clause in &self.clauses {
+            for literal in &clause.literals {
+                max_variable_index = Some(max_variable_index.unwrap_or(0).max(literal.variable.index()));
+            }
+        }
+        max_variable_index.unwrap_or(0) + 1
+    }
 }
 
 // TODO: Does this still make sense?
