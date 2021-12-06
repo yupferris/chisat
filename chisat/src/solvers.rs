@@ -78,44 +78,38 @@ mod tests {
     use super::*;
 
     #[quickcheck]
-    fn backtracking_satisfying_assignments_are_satisfying(formula: Formula) -> bool {
-        match backtracking(&formula).0 {
-            Some(assignment) => {
-                println!("Satisfying assignment: {:?}", assignment);
-                formula.evaluate(&assignment)
-            }
-            _ => true,
+    fn backtracking_satisfying_assignments_are_satisfying(formula: Formula) {
+        if let Some(assignment) = backtracking(&formula).0 {
+            println!("Satisfying assignment: {:?}", assignment);
+            assert!(formula.evaluate(&assignment));
         }
     }
 
     #[quickcheck]
-    fn dpll_satisfying_assignments_are_satisfying(formula: Formula) -> bool {
-        match dpll(&formula).0 {
-            Some(assignment) => {
-                println!("Satisfying assignment: {:?}", assignment);
-                formula.evaluate(&assignment)
-            }
-            _ => true,
+    fn dpll_satisfying_assignments_are_satisfying(formula: Formula) {
+        if let Some(assignment) = dpll(&formula).0 {
+            println!("Satisfying assignment: {:?}", assignment);
+            assert!(formula.evaluate(&assignment));
         }
     }
 
     #[quickcheck]
-    fn backtracking_and_dpll_reach_the_same_conclusion(formula: Formula) -> bool {
+    fn backtracking_and_dpll_reach_the_same_conclusion(formula: Formula) {
         let backtracking_result = backtracking(&formula);
         println!("backtracking result: {:?}", backtracking_result);
         let dpll_result = dpll(&formula);
         println!("dpll result: {:?}", dpll_result);
         let ret = backtracking_result.0.is_some() == dpll_result.0.is_some();
         println!();
-        ret
+        assert!(ret);
     }
 
     #[quickcheck]
-    fn dpll_uses_the_same_or_fewer_search_steps_than_backtracking(formula: Formula) -> bool {
+    fn dpll_uses_the_same_or_fewer_search_steps_than_backtracking(formula: Formula) {
         let backtracking_result = backtracking(&formula);
         println!("backtracking result: {:?}", backtracking_result);
         let dpll_result = dpll(&formula);
         println!("dpll result: {:?}", dpll_result);
-        dpll_result.1 <= backtracking_result.1
+        assert!(dpll_result.1 <= backtracking_result.1);
     }
 }
