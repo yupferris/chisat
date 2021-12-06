@@ -436,7 +436,7 @@ mod tests {
 
         let result = dpll(&formula);
         println!("  result: {:?}", result);
-        if let Some(assignment) = result.0 {
+        if let Some(_assignment) = result.0 {
             panic!("Base case check failed");
             // TODO
         }
