@@ -230,7 +230,6 @@ impl Assignment {
 mod tests {
     use super::*;
 
-    // TODO: Does this still make sense?
     impl quickcheck::Arbitrary for Formula {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             // TODO: Find a good way to respect size that doesn't end up generating too many
