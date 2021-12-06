@@ -16,6 +16,7 @@ fn main() -> io::Result<()> {
         println!("c parsing file {}", cnf_file_name);
         dimacs_cnf::parse(&mut formula, File::open(cnf_file_name)?)?;
         println!("c parsing successful");
+        println!("c {} variable(s), {} clause(s)", formula.num_variables(), formula.num_clauses());
 
         println!("c solving");
         let start_time = Instant::now();
