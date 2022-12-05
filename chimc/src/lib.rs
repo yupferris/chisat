@@ -84,8 +84,8 @@ mod tests {
 
     #[derive(Clone, Debug, VariantCount)]
     enum BooleanExpression {
-        Conjuction(Box<BooleanExpression>, Box<BooleanExpression>),
-        Disjuction(Box<BooleanExpression>, Box<BooleanExpression>),
+        Conjunction(Box<BooleanExpression>, Box<BooleanExpression>),
+        Disjunction(Box<BooleanExpression>, Box<BooleanExpression>),
         Equality(Box<BooleanExpression>, Box<BooleanExpression>),
         Negation(Box<BooleanExpression>),
         Variable(VariableRef),
@@ -113,8 +113,8 @@ mod tests {
     impl BooleanExpression {
         fn evaluate(&self, assignment: &Assignment) -> bool {
             match self {
-                BooleanExpression::Conjuction(lhs, rhs) => lhs.evaluate(assignment) & rhs.evaluate(assignment),
-                BooleanExpression::Disjuction(lhs, rhs) => lhs.evaluate(assignment) | rhs.evaluate(assignment),
+                BooleanExpression::Conjunction(lhs, rhs) => lhs.evaluate(assignment) & rhs.evaluate(assignment),
+                BooleanExpression::Disjunction(lhs, rhs) => lhs.evaluate(assignment) | rhs.evaluate(assignment),
                 BooleanExpression::Equality(lhs, rhs) => lhs.evaluate(assignment) == rhs.evaluate(assignment),
                 BooleanExpression::Negation(expression) => !expression.evaluate(assignment),
                 BooleanExpression::Variable(variable) => assignment.values.get(&variable).cloned().unwrap_or(false),
@@ -123,9 +123,9 @@ mod tests {
 
         fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
             match self {
-                BooleanExpression::Conjuction(lhs, rhs) =>
+                BooleanExpression::Conjunction(lhs, rhs) =>
                     lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
-                BooleanExpression::Disjuction(lhs, rhs) =>
+                BooleanExpression::Disjunction(lhs, rhs) =>
                     lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
                 BooleanExpression::Equality(lhs, rhs) =>
                     lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
@@ -169,7 +169,7 @@ mod tests {
             variables: &mut Vec<Variable>,
         ) -> chisat::Variable {
             match expression {
-                BooleanExpression::Conjuction(lhs, rhs) => {
+                BooleanExpression::Conjunction(lhs, rhs) => {
                     let lhs = go(lhs, true, formula, variables);
                     let rhs = go(rhs, true, formula, variables);
                     let temp_index = variables.len() as u32;
@@ -189,7 +189,7 @@ mod tests {
                         .literal(temp, !is_positive);
                     temp
                 }
-                BooleanExpression::Disjuction(lhs, rhs) => {
+                BooleanExpression::Disjunction(lhs, rhs) => {
                     let lhs = go(lhs, true, formula, variables);
                     let rhs = go(rhs, true, formula, variables);
                     let temp_index = variables.len() as u32;
@@ -273,8 +273,8 @@ mod tests {
                 let max_depth = 4;
                 if depth < max_depth {
                     match usize::arbitrary(g) % BooleanExpression::VARIANT_COUNT {
-                        0 => BooleanExpression::Conjuction(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
-                        1 => BooleanExpression::Disjuction(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
+                        0 => BooleanExpression::Conjunction(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
+                        1 => BooleanExpression::Disjunction(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
                         2 => BooleanExpression::Equality(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
                         3 => BooleanExpression::Negation(Box::new(go(g, depth + 1))),
                         4 => BooleanExpression::Variable(VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)),
@@ -394,7 +394,7 @@ mod tests {
         let mut conjoin = |e: BooleanExpression| {
             expression = Some(if let Some(expression) = expression.as_ref() {
                 // TODO: This clone sucks
-                BooleanExpression::Conjuction(Box::new(expression.clone()), Box::new(e))
+                BooleanExpression::Conjunction(Box::new(expression.clone()), Box::new(e))
             } else {
                 e
             });
@@ -453,7 +453,7 @@ mod tests {
         let mut conjoin = |e: BooleanExpression| {
             expression = Some(if let Some(expression) = expression.as_ref() {
                 // TODO: This clone sucks
-                BooleanExpression::Conjuction(Box::new(expression.clone()), Box::new(e))
+                BooleanExpression::Conjunction(Box::new(expression.clone()), Box::new(e))
             } else {
                 e
             });
@@ -534,7 +534,7 @@ mod tests {
     }
 
     fn encode_exactly_one_constraint(input_variables: &[VariableRef]) -> BooleanExpression {
-        BooleanExpression::Conjuction(
+        BooleanExpression::Conjunction(
             Box::new(encode_at_least_one_constraint(input_variables)),
             Box::new(encode_at_most_one_constraint(input_variables)),
         )
@@ -545,7 +545,7 @@ mod tests {
         let mut disjoin = |e: BooleanExpression| {
             expression = Some(if let Some(expression) = expression.as_ref() {
                 // TODO: This clone sucks
-                BooleanExpression::Disjuction(Box::new(expression.clone()), Box::new(e))
+                BooleanExpression::Disjunction(Box::new(expression.clone()), Box::new(e))
             } else {
                 e
             });
@@ -561,7 +561,7 @@ mod tests {
         let mut conjoin = |e: BooleanExpression| {
             expression = Some(if let Some(expression) = expression.as_ref() {
                 // TODO: This clone sucks
-                BooleanExpression::Conjuction(Box::new(expression.clone()), Box::new(e))
+                BooleanExpression::Conjunction(Box::new(expression.clone()), Box::new(e))
             } else {
                 e
             });
@@ -571,7 +571,7 @@ mod tests {
             for x_index in 0..y_index {
                 let x = input_variables[x_index];
                 conjoin(BooleanExpression::Negation(Box::new(
-                    BooleanExpression::Conjuction(
+                    BooleanExpression::Conjunction(
                         Box::new(BooleanExpression::Variable(x)),
                         Box::new(BooleanExpression::Variable(y)),
                     ))
