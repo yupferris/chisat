@@ -392,9 +392,8 @@ mod tests {
         }).collect();
         let mut expression: Option<BooleanExpression> = None;
         let mut conjoin = |e: BooleanExpression| {
-            expression = Some(if let Some(expression) = expression.as_ref() {
-                // TODO: This clone sucks
-                BooleanExpression::Conjunction(Box::new(expression.clone()), Box::new(e))
+            expression = Some(if let Some(expression) = expression.take() {
+                BooleanExpression::Conjunction(Box::new(expression), Box::new(e))
             } else {
                 e
             });
@@ -451,9 +450,8 @@ mod tests {
         })).collect();
         let mut expression: Option<BooleanExpression> = None;
         let mut conjoin = |e: BooleanExpression| {
-            expression = Some(if let Some(expression) = expression.as_ref() {
-                // TODO: This clone sucks
-                BooleanExpression::Conjunction(Box::new(expression.clone()), Box::new(e))
+            expression = Some(if let Some(expression) = expression.take() {
+                BooleanExpression::Conjunction(Box::new(expression), Box::new(e))
             } else {
                 e
             });
@@ -543,9 +541,8 @@ mod tests {
     fn encode_at_least_one_constraint(input_variables: &[VariableRef]) -> BooleanExpression {
         let mut expression: Option<BooleanExpression> = None;
         let mut disjoin = |e: BooleanExpression| {
-            expression = Some(if let Some(expression) = expression.as_ref() {
-                // TODO: This clone sucks
-                BooleanExpression::Disjunction(Box::new(expression.clone()), Box::new(e))
+            expression = Some(if let Some(expression) = expression.take() {
+                BooleanExpression::Disjunction(Box::new(expression), Box::new(e))
             } else {
                 e
             });
@@ -559,9 +556,8 @@ mod tests {
     fn encode_at_most_one_constraint(input_variables: &[VariableRef]) -> BooleanExpression {
         let mut expression: Option<BooleanExpression> = None;
         let mut conjoin = |e: BooleanExpression| {
-            expression = Some(if let Some(expression) = expression.as_ref() {
-                // TODO: This clone sucks
-                BooleanExpression::Conjunction(Box::new(expression.clone()), Box::new(e))
+            expression = Some(if let Some(expression) = expression.take() {
+                BooleanExpression::Conjunction(Box::new(expression), Box::new(e))
             } else {
                 e
             });
