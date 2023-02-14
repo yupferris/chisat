@@ -6,8 +6,8 @@ extern crate quickcheck_macros;
 mod tests {
     extern crate quickcheck;
 
-    use chisat::*;
     use chisat::solvers::*;
+    use chisat::*;
     use variant_count::*;
 
     use std::collections::HashMap;
@@ -63,9 +63,7 @@ mod tests {
             let name = name.into();
             assert!(self.variables.iter().all(|v| v.name != name));
             let ret = VariableRef(self.variables.len() as _);
-            self.variables.push(Variable {
-                name
-            });
+            self.variables.push(Variable { name });
             ret
         }
 
@@ -74,11 +72,12 @@ mod tests {
         }
 
         fn transition_constraint(&mut self, variable: VariableRef, value: TransitionValue) {
-            assert!(self.transition_constraints.iter().all(|c| c.variable != variable));
-            self.transition_constraints.push(TransitionConstraint {
-                variable,
-                value,
-            });
+            assert!(self
+                .transition_constraints
+                .iter()
+                .all(|c| c.variable != variable));
+            self.transition_constraints
+                .push(TransitionConstraint { variable, value });
         }
     }
 
@@ -113,27 +112,42 @@ mod tests {
     impl BooleanExpression {
         fn evaluate(&self, assignment: &Assignment) -> bool {
             match self {
-                BooleanExpression::Conjunction(lhs, rhs) => lhs.evaluate(assignment) & rhs.evaluate(assignment),
-                BooleanExpression::Disjunction(lhs, rhs) => lhs.evaluate(assignment) | rhs.evaluate(assignment),
-                BooleanExpression::Equality(lhs, rhs) => lhs.evaluate(assignment) == rhs.evaluate(assignment),
+                BooleanExpression::Conjunction(lhs, rhs) => {
+                    lhs.evaluate(assignment) & rhs.evaluate(assignment)
+                }
+                BooleanExpression::Disjunction(lhs, rhs) => {
+                    lhs.evaluate(assignment) | rhs.evaluate(assignment)
+                }
+                BooleanExpression::Equality(lhs, rhs) => {
+                    lhs.evaluate(assignment) == rhs.evaluate(assignment)
+                }
                 BooleanExpression::Negation(expression) => !expression.evaluate(assignment),
-                BooleanExpression::Variable(variable) => assignment.values.get(&variable).cloned().unwrap_or(false),
+                BooleanExpression::Variable(variable) => {
+                    assignment.values.get(&variable).cloned().unwrap_or(false)
+                }
             }
         }
 
         fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<VariableRef> {
             match self {
-                BooleanExpression::Conjunction(lhs, rhs) =>
-                    lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
-                BooleanExpression::Disjunction(lhs, rhs) =>
-                    lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
-                BooleanExpression::Equality(lhs, rhs) =>
-                    lhs.first_unassigned_variable(assignment).or_else(|| rhs.first_unassigned_variable(assignment)),
-                BooleanExpression::Negation(expression) => expression.first_unassigned_variable(assignment),
-                &BooleanExpression::Variable(variable) => if !assignment.values.contains_key(&variable) {
-                    Some(variable)
-                } else {
-                    None
+                BooleanExpression::Conjunction(lhs, rhs) => lhs
+                    .first_unassigned_variable(assignment)
+                    .or_else(|| rhs.first_unassigned_variable(assignment)),
+                BooleanExpression::Disjunction(lhs, rhs) => lhs
+                    .first_unassigned_variable(assignment)
+                    .or_else(|| rhs.first_unassigned_variable(assignment)),
+                BooleanExpression::Equality(lhs, rhs) => lhs
+                    .first_unassigned_variable(assignment)
+                    .or_else(|| rhs.first_unassigned_variable(assignment)),
+                BooleanExpression::Negation(expression) => {
+                    expression.first_unassigned_variable(assignment)
+                }
+                &BooleanExpression::Variable(variable) => {
+                    if !assignment.values.contains_key(&variable) {
+                        Some(variable)
+                    } else {
+                        None
+                    }
                 }
             }
         }
@@ -145,10 +159,7 @@ mod tests {
                 }
                 if let Some(variable) = expression.first_unassigned_variable(&assignment) {
                     for value in [false, true] {
-                        if go(
-                            expression,
-                            assignment.assign(variable, value),
-                        ) {
+                        if go(expression, assignment.assign(variable, value)) {
                             return true;
                         }
                     }
@@ -156,11 +167,14 @@ mod tests {
                 return false;
             }
 
-            return go(self, Assignment::empty())
+            return go(self, Assignment::empty());
         }
     }
 
-    fn tseitin_transformation(expression: &BooleanExpression, variables: &mut Vec<Variable>) -> Formula {
+    fn tseitin_transformation(
+        expression: &BooleanExpression,
+        variables: &mut Vec<Variable>,
+    ) -> Formula {
         let mut ret = Formula::new();
         fn go(
             expression: &BooleanExpression,
@@ -177,14 +191,17 @@ mod tests {
                         name: format!("_t{}", temp_index),
                     });
                     let temp = chisat::Variable::from_index(temp_index);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, false)
                         .literal(rhs, false)
                         .literal(temp, is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, true)
                         .literal(temp, !is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(rhs, true)
                         .literal(temp, !is_positive);
                     temp
@@ -197,14 +214,17 @@ mod tests {
                         name: format!("_t{}", temp_index),
                     });
                     let temp = chisat::Variable::from_index(temp_index);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, true)
                         .literal(rhs, true)
                         .literal(temp, !is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, false)
                         .literal(temp, is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(rhs, false)
                         .literal(temp, is_positive);
                     temp
@@ -217,19 +237,23 @@ mod tests {
                         name: format!("_t{}", temp_index),
                     });
                     let temp = chisat::Variable::from_index(temp_index);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, false)
                         .literal(rhs, false)
                         .literal(temp, is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, true)
                         .literal(rhs, true)
                         .literal(temp, is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, true)
                         .literal(rhs, false)
                         .literal(temp, !is_positive);
-                    formula.clause()
+                    formula
+                        .clause()
                         .literal(lhs, false)
                         .literal(rhs, true)
                         .literal(temp, !is_positive);
@@ -248,12 +272,11 @@ mod tests {
                             name: format!("_t{}", temp_index),
                         });
                         let temp = chisat::Variable::from_index(temp_index);
-                        formula.clause()
+                        formula
+                            .clause()
                             .literal(variable, false)
                             .literal(temp, false);
-                        formula.clause()
-                            .literal(variable, true)
-                            .literal(temp, true);
+                        formula.clause().literal(variable, true).literal(temp, true);
                         temp
                     }
                 }
@@ -273,15 +296,28 @@ mod tests {
                 let max_depth = 4;
                 if depth < max_depth {
                     match usize::arbitrary(g) % BooleanExpression::VARIANT_COUNT {
-                        0 => BooleanExpression::Conjunction(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
-                        1 => BooleanExpression::Disjunction(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
-                        2 => BooleanExpression::Equality(Box::new(go(g, depth + 1)), Box::new(go(g, depth + 1))),
+                        0 => BooleanExpression::Conjunction(
+                            Box::new(go(g, depth + 1)),
+                            Box::new(go(g, depth + 1)),
+                        ),
+                        1 => BooleanExpression::Disjunction(
+                            Box::new(go(g, depth + 1)),
+                            Box::new(go(g, depth + 1)),
+                        ),
+                        2 => BooleanExpression::Equality(
+                            Box::new(go(g, depth + 1)),
+                            Box::new(go(g, depth + 1)),
+                        ),
                         3 => BooleanExpression::Negation(Box::new(go(g, depth + 1))),
-                        4 => BooleanExpression::Variable(VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES)),
-                        _ => unreachable!()
+                        4 => BooleanExpression::Variable(VariableRef(
+                            u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES,
+                        )),
+                        _ => unreachable!(),
                     }
                 } else {
-                    BooleanExpression::Variable(VariableRef(u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES))
+                    BooleanExpression::Variable(VariableRef(
+                        u32::arbitrary(g) % ARBITRARY_NUM_VARIABLES,
+                    ))
                 }
             }
             go(g, 0)
@@ -290,9 +326,11 @@ mod tests {
 
     #[quickcheck]
     fn tseitin_transformation_is_equisatisfiable(expression: BooleanExpression) {
-        let mut variables = (0..ARBITRARY_NUM_VARIABLES).map(|i| Variable {
-            name: format!("v{}", i),
-        }).collect();
+        let mut variables = (0..ARBITRARY_NUM_VARIABLES)
+            .map(|i| Variable {
+                name: format!("v{}", i),
+            })
+            .collect();
         let formula = tseitin_transformation(&expression, &mut variables);
         println!("formula: {:?}", formula);
 
@@ -301,7 +339,11 @@ mod tests {
 
         if let Some(result) = result.0 {
             let assignment = Assignment {
-                values: result.values.iter().map(|(variable, &value)| (VariableRef(variable.index()), value)).collect(),
+                values: result
+                    .values
+                    .iter()
+                    .map(|(variable, &value)| (VariableRef(variable.index()), value))
+                    .collect(),
             };
             assert!(expression.evaluate(&assignment));
         } else {
@@ -334,7 +376,10 @@ mod tests {
         for constraint in &system.init_constraints {
             match constraint {
                 Constraint::EqualityConst(variable, value) => {
-                    println!("    {} = {}", system.variables[variable.0 as usize].name, value);
+                    println!(
+                        "    {} = {}",
+                        system.variables[variable.0 as usize].name, value
+                    );
                 }
                 Constraint::ExactlyOne(ref variables) => {
                     print!("    EO(");
@@ -350,7 +395,10 @@ mod tests {
         }
         println!("  transition constraints:");
         for constraint in &system.transition_constraints {
-            print!("    {}' = ", system.variables[constraint.variable.0 as usize].name);
+            print!(
+                "    {}' = ",
+                system.variables[constraint.variable.0 as usize].name
+            );
             match constraint.value {
                 TransitionValue::Variable(variable) => {
                     println!("{}", system.variables[variable.0 as usize].name);
@@ -366,30 +414,35 @@ mod tests {
         println!("  properties:");
         for property in &properties {
             match property {
-                Property::Constraint(constraint) => {
-                    match constraint {
-                        Constraint::EqualityConst(variable, value) => {
-                            println!("    {} = {}", system.variables[variable.0 as usize].name, value);
-                        }
-                        Constraint::ExactlyOne(ref variables) => {
-                            print!("    EO(");
-                            for (i, &variable) in variables.iter().enumerate() {
-                                if i > 0 {
-                                    print!(", ");
-                                }
-                                print!("{}", system.variables[variable.0 as usize].name);
-                            }
-                            println!(")");
-                        }
+                Property::Constraint(constraint) => match constraint {
+                    Constraint::EqualityConst(variable, value) => {
+                        println!(
+                            "    {} = {}",
+                            system.variables[variable.0 as usize].name, value
+                        );
                     }
-                }
+                    Constraint::ExactlyOne(ref variables) => {
+                        print!("    EO(");
+                        for (i, &variable) in variables.iter().enumerate() {
+                            if i > 0 {
+                                print!(", ");
+                            }
+                            print!("{}", system.variables[variable.0 as usize].name);
+                        }
+                        println!(")");
+                    }
+                },
             }
         }
 
         println!("Base case");
-        let mut variables = system.variables.iter().map(|v| Variable {
-            name: v.name.clone(),
-        }).collect();
+        let mut variables = system
+            .variables
+            .iter()
+            .map(|v| Variable {
+                name: v.name.clone(),
+            })
+            .collect();
         let mut expression: Option<BooleanExpression> = None;
         let mut conjoin = |e: BooleanExpression| {
             expression = Some(if let Some(expression) = expression.take() {
@@ -414,20 +467,20 @@ mod tests {
         }
         for property in &properties {
             conjoin(BooleanExpression::Negation(Box::new(match property {
-                Property::Constraint(constraint) => {
-                    match constraint {
-                        &Constraint::EqualityConst(variable, value) => {
-                            if value {
-                                BooleanExpression::Variable(variable)
-                            } else {
-                                BooleanExpression::Negation(Box::new(BooleanExpression::Variable(variable)))
-                            }
-                        }
-                        &Constraint::ExactlyOne(ref input_variables) => {
-                            encode_exactly_one_constraint(input_variables)
+                Property::Constraint(constraint) => match constraint {
+                    &Constraint::EqualityConst(variable, value) => {
+                        if value {
+                            BooleanExpression::Variable(variable)
+                        } else {
+                            BooleanExpression::Negation(Box::new(BooleanExpression::Variable(
+                                variable,
+                            )))
                         }
                     }
-                }
+                    &Constraint::ExactlyOne(ref input_variables) => {
+                        encode_exactly_one_constraint(input_variables)
+                    }
+                },
             })))
         }
         let formula = tseitin_transformation(&expression.unwrap(), &mut variables);
@@ -443,11 +496,16 @@ mod tests {
         println!("Base case check successful");
 
         println!("Induction");
-        let mut variables = system.variables.iter().map(|v| Variable {
-            name: v.name.clone(),
-        }).chain(system.variables.iter().map(|v| Variable {
-            name: format!("{}'", v.name),
-        })).collect();
+        let mut variables = system
+            .variables
+            .iter()
+            .map(|v| Variable {
+                name: v.name.clone(),
+            })
+            .chain(system.variables.iter().map(|v| Variable {
+                name: format!("{}'", v.name),
+            }))
+            .collect();
         let mut expression: Option<BooleanExpression> = None;
         let mut conjoin = |e: BooleanExpression| {
             expression = Some(if let Some(expression) = expression.take() {
@@ -456,9 +514,8 @@ mod tests {
                 e
             });
         };
-        let primed = |variable: VariableRef| {
-            VariableRef(variable.0 + system.variables.len() as u32)
-        };
+        let primed =
+            |variable: VariableRef| VariableRef(variable.0 + system.variables.len() as u32);
         for &constraint in &system.transition_constraints {
             let x = primed(constraint.variable);
             let y = match constraint.value {
@@ -471,32 +528,36 @@ mod tests {
         }
         for property in &properties {
             match property {
-                Property::Constraint(constraint) => {
-                    match constraint {
-                        &Constraint::EqualityConst(variable, value) => {
-                            conjoin(if value {
-                                BooleanExpression::Variable(variable)
-                            } else {
-                                BooleanExpression::Negation(Box::new(BooleanExpression::Variable(variable)))
-                            });
-                            let primed_variable = primed(variable);
-                            conjoin(BooleanExpression::Negation(Box::new(
-                                if value {
-                                    BooleanExpression::Variable(primed_variable)
-                                } else {
-                                    BooleanExpression::Negation(Box::new(BooleanExpression::Variable(primed_variable)))
-                                }
-                            )));
-                        }
-                        &Constraint::ExactlyOne(ref input_variables) => {
-                            conjoin(encode_exactly_one_constraint(input_variables));
-                            let primed_input_variables = input_variables.iter().cloned().map(primed).collect::<Vec<_>>();
-                            conjoin(BooleanExpression::Negation(Box::new(
-                                encode_exactly_one_constraint(&primed_input_variables)
-                            )));
-                        }
+                Property::Constraint(constraint) => match constraint {
+                    &Constraint::EqualityConst(variable, value) => {
+                        conjoin(if value {
+                            BooleanExpression::Variable(variable)
+                        } else {
+                            BooleanExpression::Negation(Box::new(BooleanExpression::Variable(
+                                variable,
+                            )))
+                        });
+                        let primed_variable = primed(variable);
+                        conjoin(BooleanExpression::Negation(Box::new(if value {
+                            BooleanExpression::Variable(primed_variable)
+                        } else {
+                            BooleanExpression::Negation(Box::new(BooleanExpression::Variable(
+                                primed_variable,
+                            )))
+                        })));
                     }
-                }
+                    &Constraint::ExactlyOne(ref input_variables) => {
+                        conjoin(encode_exactly_one_constraint(input_variables));
+                        let primed_input_variables = input_variables
+                            .iter()
+                            .cloned()
+                            .map(primed)
+                            .collect::<Vec<_>>();
+                        conjoin(BooleanExpression::Negation(Box::new(
+                            encode_exactly_one_constraint(&primed_input_variables),
+                        )));
+                    }
+                },
             }
         }
         let formula = tseitin_transformation(&expression.unwrap(), &mut variables);
@@ -570,8 +631,8 @@ mod tests {
                     BooleanExpression::Conjunction(
                         Box::new(BooleanExpression::Variable(x)),
                         Box::new(BooleanExpression::Variable(y)),
-                    ))
-                ));
+                    ),
+                )));
             }
         }
         expression.unwrap()
