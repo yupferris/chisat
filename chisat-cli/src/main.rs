@@ -10,19 +10,23 @@ fn main() -> io::Result<()> {
         panic!("Missing CNF file name arg(s)");
     }
     for cnf_file_name in env::args().skip(1) {
-
         let mut formula = Formula::new();
 
         println!("c parsing file {}", cnf_file_name);
         dimacs_cnf::parse(&mut formula, File::open(cnf_file_name)?)?;
         println!("c parsing successful");
-        println!("c {} variable(s), {} clause(s)", formula.num_variables(), formula.num_clauses());
+        println!(
+            "c {} variable(s), {} clause(s)",
+            formula.num_variables(),
+            formula.num_clauses()
+        );
 
         println!("c solving");
         let start_time = Instant::now();
         let result = solvers::dpll(&formula);
         let elapsed_time = start_time.elapsed();
-        let elapsed_time_s = (elapsed_time.as_secs() as f64) + (elapsed_time.subsec_nanos() as f64) / 1000000000.0;
+        let elapsed_time_s =
+            (elapsed_time.as_secs() as f64) + (elapsed_time.subsec_nanos() as f64) / 1000000000.0;
         println!("c solving successful");
         println!("c elapsed time: {:.*}s", 2, elapsed_time_s);
         println!("c {} search steps", result.1);
