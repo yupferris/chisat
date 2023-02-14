@@ -25,8 +25,7 @@ pub fn parse(formula: &mut Formula, r: impl io::Read) -> io::Result<()> {
                 io::ErrorKind::InvalidData,
                 format!(
                     "Out-of-bounds literal value found: ({}, max {} variables specified)",
-                    literal,
-                    num_variables,
+                    literal, num_variables,
                 ),
             ))
         }
@@ -76,7 +75,7 @@ pub fn parse(formula: &mut Formula, r: impl io::Read) -> io::Result<()> {
 
 fn accept_comments<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<()>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     while accept_comment(p)? {
         // Do nothing
@@ -87,7 +86,7 @@ where
 
 fn accept_comment<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<bool>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     if let Some(_) = p.next_if_eq(&('c' as _))? {
         accept_all_until_next_line(p).map(|_| true)
@@ -98,7 +97,7 @@ where
 
 fn accept_all_until_next_line<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<()>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     while let Some(c) = p.next()? {
         if c == '\n' as _ {
@@ -111,7 +110,7 @@ where
 
 fn expect_problem_line<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<(u32, u32)>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     expect_char(p, 'p')?;
     accept_whitespace(p)?;
@@ -126,22 +125,20 @@ where
 
 fn expect_char<I>(p: &mut TransposingPeekable<u8, I>, c: char) -> io::Result<()>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     match p.next()? {
-        Some(next) if next == c as _ => {
-            Ok(())
-        }
+        Some(next) if next == c as _ => Ok(()),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidData,
             format!("Expected char: '{}'", c),
-        ))
+        )),
     }
 }
 
 fn expect_str<I>(p: &mut TransposingPeekable<u8, I>, s: &str) -> io::Result<()>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     for c in s.chars() {
         // TODO: Map/wrap error message?
@@ -153,7 +150,7 @@ where
 
 fn accept_whitespace<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<()>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     while let Some(_) = p.next_if(|&b| (b as char).is_whitespace())? {
         // Do nothing
@@ -164,17 +161,19 @@ where
 
 fn expect_i32<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<i32>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
-    accept_i32(p)?.ok_or_else(|| io::Error::new(
-        io::ErrorKind::InvalidData,
-        "Expected signed 32-bit integer literal",
-    ))
+    accept_i32(p)?.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Expected signed 32-bit integer literal",
+        )
+    })
 }
 
 fn accept_i32<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<Option<i32>>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     let minus = '-' as u8;
     let is_negative = p.next_if_eq(&minus)?.is_some();
@@ -205,17 +204,19 @@ where
 
 fn expect_u32<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<u32>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
-    accept_u32(p)?.ok_or_else(|| io::Error::new(
-        io::ErrorKind::InvalidData,
-        "Expected unsigned 32-bit integer literal",
-    ))
+    accept_u32(p)?.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            "Expected unsigned 32-bit integer literal",
+        )
+    })
 }
 
 fn accept_u32<I>(p: &mut TransposingPeekable<u8, I>) -> io::Result<Option<u32>>
 where
-    I: Iterator<Item = io::Result<u8>>
+    I: Iterator<Item = io::Result<u8>>,
 {
     let mut ret: Option<u32> = None;
     let zero = '0' as u8;
@@ -298,11 +299,15 @@ mod tests {
         assert_eq!(accept_i32_str(&format!("{}", i32::MIN))?, Some(i32::MIN));
 
         assert_eq!(
-            accept_i32_str(&format!("{}", i32::MAX as i64 + 1)).unwrap_err().to_string(),
+            accept_i32_str(&format!("{}", i32::MAX as i64 + 1))
+                .unwrap_err()
+                .to_string(),
             "Signed integer literal does not fit in 32 bits",
         );
         assert_eq!(
-            accept_i32_str(&format!("{}", i32::MIN as i64 - 1)).unwrap_err().to_string(),
+            accept_i32_str(&format!("{}", i32::MIN as i64 - 1))
+                .unwrap_err()
+                .to_string(),
             "Signed integer literal does not fit in 32 bits",
         );
 
@@ -342,7 +347,9 @@ mod tests {
         assert_eq!(accept_u32_str(&format!("{}", u32::MIN))?, Some(u32::MIN));
 
         assert_eq!(
-            accept_u32_str(&format!("{}", u32::MAX as i64 + 1)).unwrap_err().to_string(),
+            accept_u32_str(&format!("{}", u32::MAX as i64 + 1))
+                .unwrap_err()
+                .to_string(),
             "Unsigned integer literal does not fit in 32 bits",
         );
 

@@ -1,7 +1,11 @@
 use crate::ir::*;
 
 pub fn backtracking(formula: &Formula) -> (Option<Assignment>, u32) {
-    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
+    fn go(
+        formula: &Formula,
+        assignment: Assignment,
+        num_search_steps: &mut u32,
+    ) -> Option<Assignment> {
         if formula.evaluate(&assignment) {
             return Some(assignment);
         }
@@ -21,11 +25,18 @@ pub fn backtracking(formula: &Formula) -> (Option<Assignment>, u32) {
         None
     }
     let mut num_search_steps = 0;
-    (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
+    (
+        go(formula, Assignment::empty(), &mut num_search_steps),
+        num_search_steps,
+    )
 }
 
 pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
-    fn go(formula: &Formula, assignment: Assignment, num_search_steps: &mut u32) -> Option<Assignment> {
+    fn go(
+        formula: &Formula,
+        assignment: Assignment,
+        num_search_steps: &mut u32,
+    ) -> Option<Assignment> {
         if formula.clauses.is_empty() {
             return Some(assignment);
         }
@@ -70,7 +81,10 @@ pub fn dpll(formula: &Formula) -> (Option<Assignment>, u32) {
         None
     }
     let mut num_search_steps = 0;
-    (go(formula, Assignment::empty(), &mut num_search_steps), num_search_steps)
+    (
+        go(formula, Assignment::empty(), &mut num_search_steps),
+        num_search_steps,
+    )
 }
 
 #[cfg(test)]

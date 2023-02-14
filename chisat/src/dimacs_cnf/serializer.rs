@@ -3,13 +3,17 @@ use crate::ir::*;
 use std::io;
 
 pub fn serialize(formula: &Formula, mut w: impl io::Write) -> io::Result<()> {
-    writeln!(w, "p cnf {} {}", formula.num_variables(), formula.num_clauses())?;
+    writeln!(
+        w,
+        "p cnf {} {}",
+        formula.num_variables(),
+        formula.num_clauses()
+    )?;
 
     for clause in &formula.clauses {
         for literal in &clause.literals {
             if !literal.is_positive {
                 write!(w, "-")?;
-
             }
             write!(w, "{} ", literal.variable.index() + 1)?;
         }
@@ -28,15 +32,16 @@ mod tests {
     #[test]
     fn serialize_simple() -> io::Result<()> {
         let mut formula = Formula::new();
-        formula.clause()
+        formula
+            .clause()
             .literal(Variable::from_index(0), true)
             .literal(Variable::from_index(1), false)
             .literal(Variable::from_index(2), true);
-        formula.clause()
+        formula
+            .clause()
             .literal(Variable::from_index(1), false)
             .literal(Variable::from_index(0), false);
-        formula.clause()
-            .literal(Variable::from_index(2), false);
+        formula.clause().literal(Variable::from_index(2), false);
 
         let mut serialized = Vec::new();
         serialize(&formula, &mut serialized)?;

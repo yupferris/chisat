@@ -28,26 +28,42 @@ impl Formula {
     // TODO: This should mutate, not clone
     pub(crate) fn assign(&self, variable: Variable, value: bool) -> Formula {
         Formula {
-            clauses: self.clauses.iter().filter_map(|clause| {
-                if clause.literals.contains(&Literal {
-                    variable,
-                    is_positive: value,
-                }) {
-                    return None;
-                }
-
-                Some(Clause {
-                    literals: clause.literals.iter().copied().filter(|&literal| literal != Literal {
+            clauses: self
+                .clauses
+                .iter()
+                .filter_map(|clause| {
+                    if clause.literals.contains(&Literal {
                         variable,
-                        is_positive: !value,
-                    }).collect(),
+                        is_positive: value,
+                    }) {
+                        return None;
+                    }
+
+                    Some(Clause {
+                        literals: clause
+                            .literals
+                            .iter()
+                            .copied()
+                            .filter(|&literal| {
+                                literal
+                                    != Literal {
+                                        variable,
+                                        is_positive: !value,
+                                    }
+                            })
+                            .collect(),
+                    })
                 })
-            }).collect(),
+                .collect(),
         }
     }
 
     pub(crate) fn evaluate(&self, assignment: &Assignment) -> bool {
-        self.clauses.iter().map(|clause| clause.evaluate(assignment)).reduce(|a, b| a && b).unwrap_or(true)
+        self.clauses
+            .iter()
+            .map(|clause| clause.evaluate(assignment))
+            .reduce(|a, b| a && b)
+            .unwrap_or(true)
     }
 
     pub(crate) fn first_pure_literal(&self) -> Option<Literal> {
@@ -71,14 +87,16 @@ impl Formula {
     }
 
     pub(crate) fn first_unassigned_variable(&self, assignment: &Assignment) -> Option<Variable> {
-        self.clauses.iter().find_map(|clause| clause.literals.iter().find_map(|literal| {
-            let variable = literal.variable;
-            if !assignment.values.contains_key(&variable) {
-                Some(variable)
-            } else {
-                None
-            }
-        }))
+        self.clauses.iter().find_map(|clause| {
+            clause.literals.iter().find_map(|literal| {
+                let variable = literal.variable;
+                if !assignment.values.contains_key(&variable) {
+                    Some(variable)
+                } else {
+                    None
+                }
+            })
+        })
     }
 
     pub(crate) fn first_unit_clause_literal(&self) -> Option<Literal> {
@@ -99,7 +117,11 @@ impl Formula {
         let mut max_variable_index = None;
         for clause in &self.clauses {
             for literal in &clause.literals {
-                max_variable_index = Some(max_variable_index.unwrap_or(0).max(literal.variable.index()));
+                max_variable_index = Some(
+                    max_variable_index
+                        .unwrap_or(0)
+                        .max(literal.variable.index()),
+                );
             }
         }
         max_variable_index.unwrap_or(0) + 1
@@ -125,7 +147,11 @@ pub struct ClauseBuilder<'a> {
 }
 
 impl<'a> ClauseBuilder<'a> {
-    pub fn literal<'b>(&'b mut self, variable: Variable, is_positive: bool) -> &'b mut ClauseBuilder<'a> {
+    pub fn literal<'b>(
+        &'b mut self,
+        variable: Variable,
+        is_positive: bool,
+    ) -> &'b mut ClauseBuilder<'a> {
         let literal = Literal {
             variable,
             is_positive,
@@ -178,7 +204,11 @@ pub(crate) struct Literal {
 
 impl Literal {
     fn evaluate(&self, assignment: &Assignment) -> bool {
-        assignment.values.get(&self.variable).map(|&value| value ^ !self.is_positive).unwrap_or(false)
+        assignment
+            .values
+            .get(&self.variable)
+            .map(|&value| value ^ !self.is_positive)
+            .unwrap_or(false)
     }
 }
 
@@ -200,7 +230,11 @@ pub(crate) struct Clause {
 
 impl Clause {
     fn evaluate(&self, assignment: &Assignment) -> bool {
-        self.literals.iter().map(|literal| literal.evaluate(assignment)).reduce(|a, b| a || b).unwrap_or(false)
+        self.literals
+            .iter()
+            .map(|literal| literal.evaluate(assignment))
+            .reduce(|a, b| a || b)
+            .unwrap_or(false)
     }
 
     pub(crate) fn is_empty(&self) -> bool {
@@ -248,7 +282,7 @@ mod tests {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             // TODO: Find a good way to respect size that doesn't end up generating too many
             //  unsatisfiable formulas
-            let num_clauses = 4;//g.size();
+            let num_clauses = 4; //g.size();
             let mut ret = Formula::new();
             for _ in 0..num_clauses {
                 let mut clause = ret.clause();

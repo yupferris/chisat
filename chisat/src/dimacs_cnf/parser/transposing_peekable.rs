@@ -3,7 +3,7 @@ use std::iter::Iterator;
 
 pub struct TransposingPeekable<Item, I>
 where
-    I: Iterator<Item = io::Result<Item>>
+    I: Iterator<Item = io::Result<Item>>,
 {
     iter: I,
     peeked: Option<Option<Item>>,
@@ -11,13 +11,10 @@ where
 
 impl<Item, I> TransposingPeekable<Item, I>
 where
-    I: Iterator<Item = io::Result<Item>>
+    I: Iterator<Item = io::Result<Item>>,
 {
     fn new(iter: I) -> TransposingPeekable<Item, I> {
-        TransposingPeekable {
-            iter,
-            peeked: None,
-        }
+        TransposingPeekable { iter, peeked: None }
     }
 
     pub fn next(&mut self) -> io::Result<Option<Item>> {
